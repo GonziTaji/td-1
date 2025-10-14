@@ -16,6 +16,7 @@
 #define SCENE_SCALE_MIN SCENE_SCALE_INITIAL - (2 * SCENE_SCALE_STEP)
 #define SCENE_SCALE_MAX SCENE_SCALE_INITIAL + (5 * SCENE_SCALE_STEP)
 #define SCENE_MAX_TOWERS 20
+#define SCENE_MAX_BULLETS 1024
 
 int hoveredTileIndex = -1;
 
@@ -77,8 +78,6 @@ void startWave(int mobsCount) {
         mobsStatus[i] = i < waveMobsCount ? MOB_STATUS_WAITING_SPAWN : MOB_STATUS_INACTIVE;
     }
 }
-
-Vector2 mobMovement;
 
 void updateWave(float deltaTime) {
     if (waveStatus == WAVE_STATUS_NOT_STARTED) {
@@ -146,7 +145,7 @@ void updateWave(float deltaTime) {
 
             mobsPosition[i] = Vector2Clamp(mobsPosition[i], posMin, posMax);
 
-            mobMovement = Vector2Subtract(mobsPosition[i], prevMobPos);
+            Vector2 mobMovement = Vector2Subtract(mobsPosition[i], prevMobPos);
             mobMovement.x = fabs(mobMovement.x);
             mobMovement.y = fabs(mobMovement.y);
 
@@ -200,9 +199,87 @@ void drawPath() {
 typedef struct {
     bool onScene;
     V2i coords;
+    int currentTargetMobIndex;
 } Tower;
 
 Tower towersPool[SCENE_MAX_TOWERS];
+float towersTimeSinceLastShot[SCENE_MAX_TOWERS];
+
+// Bullets per second
+float towerRateOfFire = 1.2f;
+
+typedef struct {
+    bool alive;
+    float timeAlive;
+    Vector2 position;
+    V2i originTowerCoords;
+    int mobTargetIndex;
+} TowerBullet;
+
+TowerBullet towerBullets[SCENE_MAX_BULLETS];
+
+void createBullet(int mobTargetIndex, int x, int y) {
+    for (int i = 0; i < SCENE_MAX_TOWERS; i++) {
+        if (!towerBullets[i].alive) {
+            towerBullets[i].alive = true;
+            towerBullets[i].timeAlive = 0;
+            towerBullets[i].originTowerCoords.x = x;
+            towerBullets[i].originTowerCoords.y = y;
+            towerBullets[i].mobTargetIndex = mobTargetIndex;
+        }
+    }
+}
+
+void updateBullets(float deltaTime) {
+    for (int i = 0; i < SCENE_MAX_BULLETS; i++) {
+        if (!towerBullets[i].alive) {
+            continue;
+        }
+
+        Vector2 originPos = grid_getTileCenter(SCENE_TRANSFORM,
+            towerBullets[i].originTowerCoords.x,
+            towerBullets[i].originTowerCoords.x);
+        Vector2 targetPos = mobsPosition[towerBullets[i].mobTargetIndex];
+
+        float t = towerBullets[i].timeAlive;
+        Vector2 prevBulletPos = Vector2Lerp(originPos, targetPos, t);
+
+        towerBullets[i].timeAlive += deltaTime;
+        towerBullets[i].timeAlive = Clamp(towerBullets[i].timeAlive, 0, 1);
+
+        t = towerBullets[i].timeAlive;
+        towerBullets[i].position = Vector2Lerp(originPos, targetPos, t);
+
+        Vector2 bulletMovement = Vector2Subtract(prevBulletPos, towerBullets[i].position);
+
+        if (bulletMovement.x == 0 && bulletMovement.y == 0) {
+            // TODO: damage mob
+            towerBullets[i].alive = false;
+        }
+    }
+}
+
+void updateTowers(float deltaTime) {
+    float towerSecondsPerBullet = 1.0f / towerRateOfFire;
+
+    for (int i = 0; i < SCENE_MAX_TOWERS; i++) {
+        if (!towersPool[i].onScene) {
+            continue;
+        }
+
+        towersTimeSinceLastShot[i] += deltaTime;
+
+        if (towersTimeSinceLastShot[i] >= towerSecondsPerBullet) {
+            towersTimeSinceLastShot[i] -= towerSecondsPerBullet;
+            createBullet(towersPool[i].currentTargetMobIndex,
+                towersPool[i].coords.x,
+                towersPool[i].coords.x);
+        }
+
+        // TODO: change target according to range
+        // qsort mobs?
+    }
+}
 
 void createTower(int x, int y) {
     for (int i = 0; i < SCENE_MAX_TOWERS; i++) {
@@ -211,6 +288,7 @@ void createTower(int x, int y) {
             tower->onScene = true;
             tower->coords.x = x;
             tower->coords.y = y;
+            tower->currentTargetMobIndex = 0;
 
             return;
         }
@@ -222,8 +300,6 @@ void createTower(int x, int y) {
 void removeTower(int x, int y) {
     for (int i = 0; i < SCENE_MAX_TOWERS; i++) {
         if (towersPool[i].coords.x == x && towersPool[i].coords.y) {
-            towersPool[i].coords.x = 0;
-            towersPool[i].coords.y = 0;
             towersPool[i].onScene = false;
 
             return;
@@ -274,6 +350,15 @@ void scene_init() {
         towersPool[i].onScene = false;
     }
 
+    for (int i = 0; i < SCENE_MAX_BULLETS; i++) {
+        towerBullets[i] = (TowerBullet){
+            .alive = false,
+            .timeAlive = 0,
+            .mobTargetIndex = 0,
+            .originTowerCoords = (V2i){0, 0},
+        };
+    }
+
     createTower(1, 1);
     createTower(3, 3);
 }
@@ -312,6 +397,8 @@ void scene_handleInput() {
 
 void scene_update(float deltaTime) {
     updateWave(deltaTime);
+    updateTowers(deltaTime);
+    updateBullets(deltaTime);
 }
 
 void scene_draw() {
@@ -354,4 +441,12 @@ void scene_draw() {
     }
 
     drawMobs();
+
+    for (int i = 0; i < SCENE_MAX_BULLETS; i++) {
+        if (!towerBullets[i].alive) {
+            continue;
+        }
+
+        DrawCircle(towerBullets[i].position.x, towerBullets[i].position.y, 3, YELLOW);
+    }
 }
