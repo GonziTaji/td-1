@@ -1,0 +1,182 @@
+[
+ {
+  "directory": "/home/yogusita/proyectos/td-1",
+  "arguments": [
+   "gcc",
+   "-Wall",
+   "-Iinclude",
+   "-g",
+   "-Werror",
+   "-c",
+   "src/utils/utils.c",
+   "-o",
+   "build/utils/utils.o"
+  ],
+  "file": "src/utils/utils.c"
+ },
+ {
+  "directory": "/home/yogusita/proyectos/td-1",
+  "arguments": [
+   "gcc",
+   "-Wall",
+   "-Iinclude",
+   "-g",
+   "-Werror",
+   "-c",
+   "src/utils/grid.c",
+   "-o",
+   "build/utils/grid.o"
+  ],
+  "file": "src/utils/grid.c"
+ },
+ {
+  "directory": "/home/yogusita/proyectos/td-1",
+  "arguments": [
+   "gcc",
+   "-Wall",
+   "-Iinclude",
+   "-g",
+   "-Werror",
+   "-c",
+   "src/messages/messages.c",
+   "-o",
+   "build/messages/messages.o"
+  ],
+  "file": "src/messages/messages.c"
+ },
+ {
+  "directory": "/home/yogusita/proyectos/td-1",
+  "arguments": [
+   "gcc",
+   "-Wall",
+   "-Iinclude",
+   "-g",
+   "-Werror",
+   "-c",
+   "src/input/key_map.c",
+   "-o",
+   "build/input/key_map.o"
+  ],
+  "file": "src/input/key_map.c"
+ },
+ {
+  "directory": "/home/yogusita/proyectos/td-1",
+  "arguments": [
+   "gcc",
+   "-Wall",
+   "-Iinclude",
+   "-g",
+   "-Werror",
+   "-c",
+   "src/input/input.c",
+   "-o",
+   "build/input/input.o"
+  ],
+  "file": "src/input/input.c"
+ },
+ {
+  "directory": "/home/yogusita/proyectos/td-1",
+  "arguments": [
+   "gcc",
+   "-Wall",
+   "-Iinclude",
+   "-g",
+   "-Werror",
+   "-c",
+   "src/core/asset_manager.c",
+   "-o",
+   "build/core/asset_manager.o"
+  ],
+  "file": "src/core/asset_manager.c"
+ },
+ {
+  "directory": "/home/yogusita/proyectos/td-1",
+  "arguments": [
+   "gcc",
+   "-Wall",
+   "-Iinclude",
+   "-g",
+   "-Werror",
+   "-c",
+   "src/core/main.c",
+   "-o",
+   "build/core/main.o"
+  ],
+  "file": "src/core/main.c"
+ },
+ {
+  "directory": "/home/yogusita/proyectos/td-1",
+  "arguments": [
+   "gcc",
+   "-Wall",
+   "-Iinclude",
+   "-g",
+   "-Werror",
+   "-c",
+   "src/ui/button.c",
+   "-o",
+   "build/ui/button.o"
+  ],
+  "file": "src/ui/button.c"
+ },
+ {
+  "directory": "/home/yogusita/proyectos/td-1",
+  "arguments": [
+   "gcc",
+   "-Wall",
+   "-Iinclude",
+   "-g",
+   "-Werror",
+   "-c",
+   "src/ui/ui_button_grid.c",
+   "-o",
+   "build/ui/ui_button_grid.o"
+  ],
+  "file": "src/ui/ui_button_grid.c"
+ },
+ {
+  "directory": "/home/yogusita/proyectos/td-1",
+  "arguments": [
+   "gcc",
+   "-Wall",
+   "-Iinclude",
+   "-g",
+   "-Werror",
+   "-c",
+   "src/ui/ui_text_box.c",
+   "-o",
+   "build/ui/ui_text_box.o"
+  ],
+  "file": "src/ui/ui_text_box.c"
+ },
+ {
+  "directory": "/home/yogusita/proyectos/td-1",
+  "arguments": [
+   "gcc",
+   "-Wall",
+   "-Iinclude",
+   "-g",
+   "-Werror",
+   "-c",
+   "src/game/scenes/scene.c",
+   "-o",
+   "build/game/scenes/scene.o"
+  ],
+  "file": "src/game/scenes/scene.c"
+ },
+ {
+  "directory": "/home/yogusita/proyectos/td-1",
+  "arguments": [
+   "gcc",
+   "-Wall",
+   "-Iinclude",
+   "-g",
+   "-Werror",
+   "-c",
+   "src/game/game.c",
+   "-o",
+   "build/game/game.o"
+  ],
+  "file": "src/game/game.c"
+ }
+]
