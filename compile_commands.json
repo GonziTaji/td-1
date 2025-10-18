@@ -178,5 +178,20 @@
    "build/game/game.o"
   ],
   "file": "src/game/game.c"
+ },
+ {
+  "directory": "/home/yogusita/proyectos/td-1",
+  "arguments": [
+   "gcc",
+   "-Wall",
+   "-Iinclude",
+   "-g",
+   "-Werror",
+   "-c",
+   "src/debug/debug_panel.c",
+   "-o",
+   "build/debug/debug_panel.o"
+  ],
+  "file": "src/debug/debug_panel.c"
  }
 ]

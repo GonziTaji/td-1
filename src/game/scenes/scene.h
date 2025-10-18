@@ -1,4 +1,5 @@
 #pragma once
+
 #include "../../utils/utils.h"
 
 // Garden dimensions
@@ -7,6 +8,7 @@
 #define SCENE_TILE_COUNT (SCENE_COLS * SCENE_ROWS)
 
 extern Transform2D SCENE_TRANSFORM;
+extern const int *const scene_hoveredTileIndex;
 
 void scene_init();
 void scene_handleInput();

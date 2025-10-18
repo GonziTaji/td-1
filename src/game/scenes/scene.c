@@ -4,6 +4,7 @@
 #include "../../utils/grid.h"
 #include "../constants.h"
 #include <assert.h>
+#include <float.h>
 #include <math.h>
 #include <raylib.h>
 #include <raymath.h>
@@ -17,8 +18,6 @@
 #define SCENE_SCALE_MAX SCENE_SCALE_INITIAL + (5 * SCENE_SCALE_STEP)
 #define SCENE_MAX_TOWERS 20
 #define SCENE_MAX_BULLETS 1024
-
-int hoveredTileIndex = -1;
 
 // -------------------
 // START WAVE MANAGEMENT
@@ -51,9 +50,9 @@ float mobsTimeInCurrentPath[MAX_MOBS];
 int waveMobsCount = 0;
 int mobsSpawned = 0;
 // Tiles that it crosses in one second
-float mobMovementSpeed = 4.0f;
+float mobMovementSpeed = 2.0f;
 
-float spawnCooldownSeconds = 0.2f;
+float spawnCooldownSeconds = 0.4f;
 float timeSinceLastSpawn = 0;
 
 float waveStartDelaySeconds = 1200.f / 1000.f;
@@ -164,6 +163,8 @@ void updateWave(float deltaTime) {
 }
 
 void drawMobs() {
+    char buffer[16];
+
     for (int i = 0; i < mobsSpawned; i++) {
         if (mobsStatus[i] != MOB_STATUS_ALIVE) {
             continue;
@@ -171,11 +172,23 @@ void drawMobs() {
 
         DrawRectangle(mobsPosition[i].x, mobsPosition[i].y, 20, 20, RED);
 
-        // Print mob pos
-        char buffer[16];
-        snprintf(buffer, 16, "%.0f, %.0f", mobsPosition[i].x, mobsPosition[i].y);
-        DrawText(buffer, mobsPosition[i].x, mobsPosition[i].y + 64, 16, WHITE);
+        snprintf(buffer, 16, "%d", i);
+        DrawText(buffer, mobsPosition[i].x, mobsPosition[i].y + 30, 16, WHITE);
     }
+}
+
+bool isPath(int tileX, int tileY) {
+    for (int indexEnd = 1; indexEnd < waypointsCount; indexEnd++) {
+        V2i waypointStart = pathWaypoints[indexEnd - 1];
+        V2i waypointEnd = pathWaypoints[indexEnd];
+
+        if (waypointStart.x <= tileX && tileX <= waypointEnd.x && waypointStart.y <= tileY
+            && tileY <= waypointEnd.y) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void drawPath() {
@@ -206,11 +219,12 @@ Tower towersPool[SCENE_MAX_TOWERS];
 float towersTimeSinceLastShot[SCENE_MAX_TOWERS];
 
 // Bullets per second
-float towerRateOfFire = 1.2f;
+float towerRateOfFire = 3.0f;
+float towerRange = 400.0f;
 
 typedef struct {
     bool alive;
-    float timeAlive;
+    float travelProgress;
     Vector2 position;
     V2i originTowerCoords;
     int mobTargetIndex;
@@ -222,13 +236,20 @@ void createBullet(int mobTargetIndex, int x, int y) {
     for (int i = 0; i < SCENE_MAX_TOWERS; i++) {
         if (!towerBullets[i].alive) {
             towerBullets[i].alive = true;
-            towerBullets[i].timeAlive = 0;
+            towerBullets[i].travelProgress = 0;
             towerBullets[i].originTowerCoords.x = x;
             towerBullets[i].originTowerCoords.y = y;
             towerBullets[i].mobTargetIndex = mobTargetIndex;
+            towerBullets[i].position = grid_getTileCenter(SCENE_TRANSFORM, x, y);
+
+            printf("Created bullet from [%d, %d] to target enemy %d\n", x, y, mobTargetIndex);
+
+            return;
         }
     }
 }
+
+const int BULLET_SPEED = 800; // pixels per second
 
 void updateBullets(float deltaTime) {
     for (int i = 0; i < SCENE_MAX_BULLETS; i++) {
@@ -238,58 +259,113 @@ void updateBullets(float deltaTime) {
 
         Vector2 originPos = grid_getTileCenter(SCENE_TRANSFORM,
             towerBullets[i].originTowerCoords.x,
-            towerBullets[i].originTowerCoords.x);
+            towerBullets[i].originTowerCoords.y);
+
         Vector2 targetPos = mobsPosition[towerBullets[i].mobTargetIndex];
 
-        float t = towerBullets[i].timeAlive;
-        Vector2 prevBulletPos = Vector2Lerp(originPos, targetPos, t);
+        float distance = Vector2Distance(originPos, targetPos);
+        float dt = (BULLET_SPEED * deltaTime) / distance;
 
-        towerBullets[i].timeAlive += deltaTime;
-        towerBullets[i].timeAlive = Clamp(towerBullets[i].timeAlive, 0, 1);
+        towerBullets[i].travelProgress += dt;
+        towerBullets[i].travelProgress = Clamp(towerBullets[i].travelProgress, 0, 1);
 
-        t = towerBullets[i].timeAlive;
-        towerBullets[i].position = Vector2Lerp(originPos, targetPos, t);
-
-        Vector2 bulletMovement = Vector2Subtract(prevBulletPos, towerBullets[i].position);
-
-        if (bulletMovement.x == 0 && bulletMovement.y == 0) {
-            // TODO: damage mob
+        if (towerBullets[i].travelProgress == 1) {
             towerBullets[i].alive = false;
         }
+
+        towerBullets[i].position
+            = Vector2Lerp(originPos, targetPos, towerBullets[i].travelProgress);
     }
+}
+
+/// Returns -1 if no mob found
+/// @param `maxDistanceSqrt` - the tower range squared, to be compared to the distance squared (to
+/// avoid square roots)
+int getTowerTarget(Vector2 towerPosition, float towerRangeSqrt) {
+    float smallestDistanceSqrt = FLT_MAX;
+    int closestIndex = -1;
+
+    for (int i = 0; i < MAX_MOBS; i++) {
+        if (mobsStatus[i] != MOB_STATUS_ALIVE) {
+            continue;
+        }
+
+        float dx = mobsPosition[i].x - towerPosition.x;
+        float dy = mobsPosition[i].y - towerPosition.y;
+        float distanceSqrt = dx * dx + dy * dy;
+
+        if (distanceSqrt > towerRangeSqrt) {
+            continue;
+        }
+
+        if (distanceSqrt < smallestDistanceSqrt) {
+            closestIndex = i;
+            smallestDistanceSqrt = distanceSqrt;
+        }
+    }
+
+    return closestIndex;
 }
 
 void updateTowers(float deltaTime) {
     float towerSecondsPerBullet = 1.0f / towerRateOfFire;
+    float towerRangeSqrt = towerRange * towerRange;
 
     for (int i = 0; i < SCENE_MAX_TOWERS; i++) {
         if (!towersPool[i].onScene) {
             continue;
         }
 
+        Vector2 towerPos
+            = grid_getTileCenter(SCENE_TRANSFORM, towersPool[i].coords.x, towersPool[i].coords.y);
+
+        if (towersPool[i].currentTargetMobIndex == -1) {
+            towersPool[i].currentTargetMobIndex = getTowerTarget(towerPos, towerRangeSqrt);
+            continue;
+        }
+
+        int mobIndex = towersPool[i].currentTargetMobIndex;
+
+        if (mobsStatus[mobIndex] != MOB_STATUS_ALIVE) {
+            towersPool[i].currentTargetMobIndex = getTowerTarget(towerPos, towerRangeSqrt);
+            continue;
+        }
+
+        Vector2 mobPos = mobsPosition[mobIndex];
+
+        if (Vector2DistanceSqr(towerPos, mobPos) > towerRangeSqrt) {
+            towersPool[i].currentTargetMobIndex = -1;
+            continue;
+        }
+
         towersTimeSinceLastShot[i] += deltaTime;
 
         if (towersTimeSinceLastShot[i] >= towerSecondsPerBullet) {
+            printf("Shooting after %0.2f seconds\n", towersTimeSinceLastShot[i]);
             towersTimeSinceLastShot[i] -= towerSecondsPerBullet;
+
             createBullet(towersPool[i].currentTargetMobIndex,
                 towersPool[i].coords.x,
-                towersPool[i].coords.x);
+                towersPool[i].coords.y);
         }
-
-        // TODO: change target according to range
-        // qsort mobs?
     }
 }
 
 void createTower(int x, int y) {
+    if (isPath(x, y)) {
+        return;
+    }
+
     for (int i = 0; i < SCENE_MAX_TOWERS; i++) {
         if (!towersPool[i].onScene) {
             Tower *tower = &towersPool[i];
             tower->onScene = true;
             tower->coords.x = x;
             tower->coords.y = y;
-            tower->currentTargetMobIndex = 0;
+            tower->currentTargetMobIndex = -1;
 
+            // will shoot as soon as it has a target
+            towersTimeSinceLastShot[i] = 1.0f / towerRateOfFire;
             return;
         }
     }
@@ -310,12 +386,18 @@ void removeTower(int x, int y) {
 // END TOWER MANAGEMENT
 // --------------------
 
+int hoveredTileIndex = -1;
+const int *const scene_hoveredTileIndex = &hoveredTileIndex;
+
 // ---------------------
 // START VIEW MANAGEMENT
 
+const Vector2 SCENE_INITIAL_POS = {200, 600};
+
 Transform2D SCENE_TRANSFORM = {
     .scale = SCENE_SCALE_INITIAL,
-    .translation = {200, 600},
+    .translation = SCENE_INITIAL_POS,
+    .previousTranslation = SCENE_INITIAL_POS,
 };
 
 static void resetZoomView() {
@@ -353,14 +435,11 @@ void scene_init() {
     for (int i = 0; i < SCENE_MAX_BULLETS; i++) {
         towerBullets[i] = (TowerBullet){
             .alive = false,
-            .timeAlive = 0,
+            .travelProgress = 0,
             .mobTargetIndex = 0,
             .originTowerCoords = (V2i){0, 0},
         };
     }
-
-    createTower(1, 1);
-    createTower(3, 3);
 }
 
 void scene_handleInput() {
@@ -388,14 +467,26 @@ void scene_handleInput() {
     }
 
     if (input.keyPressed == KEY_SPACE) {
-        return startWave(10);
+        return startWave(40);
+    }
+
+    if (input.mouseButtonState[MOUSE_BUTTON_LEFT] == MOUSE_BUTTON_STATE_PRESSED) {
+        if (hoveredTileIndex != -1) {
+            V2i coords = grid_getCoordsFromTileIndex(SCENE_COLS, hoveredTileIndex);
+            createTower(coords.x, coords.y);
+        }
     }
 }
 
 // END VIEW MANAGEMENT
 // -------------------
 
+// ----------------
+// PUBLIC FUNCTIONS
+
 void scene_update(float deltaTime) {
+    SCENE_TRANSFORM.previousTranslation = SCENE_TRANSFORM.translation;
+
     updateWave(deltaTime);
     updateTowers(deltaTime);
     updateBullets(deltaTime);
@@ -428,6 +519,8 @@ void scene_draw() {
         drawIsoRecLines(tile, BROWN);
     }
 
+    char buffer[16];
+
     // draw towers
     for (int i = 0; i < SCENE_MAX_TOWERS; i++) {
         if (!towersPool[i].onScene) {
@@ -436,6 +529,10 @@ void scene_draw() {
 
         Vector2 tileCenter
             = grid_getTileCenter(SCENE_TRANSFORM, towersPool[i].coords.x, towersPool[i].coords.y);
+
+        snprintf(buffer, 16, "%d", towersPool[i].currentTargetMobIndex);
+
+        DrawText(buffer, tileCenter.x - 8, tileCenter.y - 30, 16, BLACK);
 
         DrawEllipse(tileCenter.x, tileCenter.y, 16, 8, WHITE);
     }
@@ -447,6 +544,6 @@ void scene_draw() {
             continue;
         }
 
-        DrawCircle(towerBullets[i].position.x, towerBullets[i].position.y, 3, YELLOW);
+        DrawCircle(towerBullets[i].position.x, towerBullets[i].position.y, 4, YELLOW);
     }
 }

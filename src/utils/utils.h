@@ -6,8 +6,9 @@
 #define MAX(a, b) ((a) >= (b) ? (a) : (b))
 
 typedef struct {
-    Vector2 translation;
     float scale;
+    Vector2 translation;
+    Vector2 previousTranslation;
 } Transform2D;
 
 typedef struct {

@@ -1,3 +1,5 @@
+#pragma once
+
 #include <raylib.h>
 
 // Change to a struct and a function to get assetManager instance if this grows
