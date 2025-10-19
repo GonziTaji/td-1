@@ -1,4 +1,5 @@
 #include "../core/asset_manager.h"
+#include "../game/constants.h"
 #include "../game/scenes/scene.h"
 #include "../input/input.h"
 #include "../utils/grid.h"
@@ -16,7 +17,7 @@ const int PANEL_FONT_SIZE = 32 * 2;
 const int PANEL_FONT_LINE_HEIGHT = PANEL_FONT_SIZE + 4;
 const int PANEL_MARGIN = 10;
 
-char buffer[64];
+static char buffer[64];
 
 int cursorX = 0;
 int cursorY = 0;

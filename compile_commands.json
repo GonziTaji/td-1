@@ -158,11 +158,71 @@
    "-g",
    "-Werror",
    "-c",
+   "src/game/gameplay.c",
+   "-o",
+   "build/game/gameplay.o"
+  ],
+  "file": "src/game/gameplay.c"
+ },
+ {
+  "directory": "/home/yogusita/proyectos/td-1",
+  "arguments": [
+   "gcc",
+   "-Wall",
+   "-Iinclude",
+   "-g",
+   "-Werror",
+   "-c",
    "src/game/scenes/scene.c",
    "-o",
    "build/game/scenes/scene.o"
   ],
   "file": "src/game/scenes/scene.c"
+ },
+ {
+  "directory": "/home/yogusita/proyectos/td-1",
+  "arguments": [
+   "gcc",
+   "-Wall",
+   "-Iinclude",
+   "-g",
+   "-Werror",
+   "-c",
+   "src/game/scenes/towers_manager.c",
+   "-o",
+   "build/game/scenes/towers_manager.o"
+  ],
+  "file": "src/game/scenes/towers_manager.c"
+ },
+ {
+  "directory": "/home/yogusita/proyectos/td-1",
+  "arguments": [
+   "gcc",
+   "-Wall",
+   "-Iinclude",
+   "-g",
+   "-Werror",
+   "-c",
+   "src/game/scenes/wave_manager.c",
+   "-o",
+   "build/game/scenes/wave_manager.o"
+  ],
+  "file": "src/game/scenes/wave_manager.c"
+ },
+ {
+  "directory": "/home/yogusita/proyectos/td-1",
+  "arguments": [
+   "gcc",
+   "-Wall",
+   "-Iinclude",
+   "-g",
+   "-Werror",
+   "-c",
+   "src/game/scenes/view_mamanger.c",
+   "-o",
+   "build/game/scenes/view_mamanger.o"
+  ],
+  "file": "src/game/scenes/view_mamanger.c"
  },
  {
   "directory": "/home/yogusita/proyectos/td-1",

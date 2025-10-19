@@ -27,13 +27,13 @@ int grid_getTileIndexFromCoords(int gridCols, int gridRows, int x, int y) {
     return ((int)y * gridCols) + (int)x;
 }
 
-V2i grid_worldPointToCoords(Transform2D transform, float x, float y) {
+V2i grid_worldPointToCoords(const Transform2D *transform, float x, float y) {
 
-    const float TW = TILE_WIDTH * transform.scale;
-    const float TH = TILE_HEIGHT * transform.scale;
+    const float TW = TILE_WIDTH * transform->scale;
+    const float TH = TILE_HEIGHT * transform->scale;
 
-    const float dx = x - transform.translation.x;
-    const float dy = y - transform.translation.y;
+    const float dx = x - transform->translation.x;
+    const float dy = y - transform->translation.y;
 
     return (V2i){
         (dx / TW) - (dy / TH),
@@ -41,22 +41,22 @@ V2i grid_worldPointToCoords(Transform2D transform, float x, float y) {
     };
 }
 
-Vector2 grid_getTileOrigin(Transform2D transform, V2i coords) {
+Vector2 grid_getTileOrigin(const Transform2D *transform, V2i coords) {
     return grid_coordsToWorldPoint(transform, coords.x, coords.y);
 }
 
-Vector2 grid_coordsToWorldPoint(const Transform2D transform, int x, int y) {
+Vector2 grid_coordsToWorldPoint(const Transform2D *transform, int x, int y) {
 
     int sumX = +x + y;
     int sumY = -x + y;
 
     return (Vector2){
-        transform.translation.x + (sumX * TILE_WIDTH * transform.scale / 2.0f),
-        transform.translation.y + (sumY * TILE_HEIGHT * transform.scale / 2.0f),
+        transform->translation.x + (sumX * TILE_WIDTH * transform->scale / 2.0f),
+        transform->translation.y + (sumY * TILE_HEIGHT * transform->scale / 2.0f),
     };
 }
 
-IsoRec grid_toIsoRec(const Transform2D transform, V2i coords, V2i size) {
+IsoRec grid_toIsoRec(const Transform2D *transform, V2i coords, V2i size) {
     Vector2 left = {coords.x, coords.y};
     Vector2 top = {coords.x + size.x, coords.y};
     Vector2 right = {coords.x + size.x, coords.y + size.y};
@@ -98,7 +98,7 @@ Vector2 grid_getIsoRecCenter(IsoRec isoRec) {
     };
 }
 
-Vector2 grid_getTileCenter(Transform2D transform, int x, int y) {
+Vector2 grid_getTileCenter(const Transform2D *transform, int x, int y) {
     IsoRec tile = grid_toIsoRec(transform, (V2i){x, y}, (V2i){1, 1});
 
     return grid_getIsoRecCenter(tile);
