@@ -4,6 +4,7 @@
 #include "../../utils/grid.h"
 #include "../constants.h"
 #include "../gameplay.h"
+#include "./scene_data.h"
 #include "./towers_manager.h"
 #include "./view_mamanger.h"
 #include "./wave_manager.h"
@@ -24,15 +25,15 @@ void drawIsoRecLines(IsoRec isoRec, Color color) {
 }
 
 void scene_init() {
-    //
+    scene_data_load(1);
 }
 
 void scene_handleInput() {
     V2i hoveredCoords
         = grid_worldPointToCoords(SCENE_TRANSFORM, input.worldMousePos.x, input.worldMousePos.y);
 
-    hoveredTileIndex
-        = grid_getTileIndexFromCoords(SCENE_COLS, SCENE_ROWS, hoveredCoords.x, hoveredCoords.y);
+    hoveredTileIndex = grid_getTileIndexFromCoords(
+        SCENE_DATA->cols, SCENE_DATA->rows, hoveredCoords.x, hoveredCoords.y);
 
     view_handleInput();
     towers_handleInput();
@@ -54,8 +55,10 @@ void scene_update(float deltaTime) {
 
 void scene_draw() {
     // draw tiles
-    for (int i = 0; i < SCENE_TILE_COUNT; i++) {
-        V2i coords = grid_getCoordsFromTileIndex(SCENE_COLS, i);
+    int tileCount = SCENE_DATA->cols * SCENE_DATA->rows;
+
+    for (int i = 0; i < tileCount; i++) {
+        V2i coords = grid_getCoordsFromTileIndex(SCENE_DATA->cols, i);
         IsoRec tile = grid_toIsoRec(SCENE_TRANSFORM, coords, (V2i){1, 1});
 
         DrawTexturePro(slab1Texture,
@@ -76,7 +79,7 @@ void scene_draw() {
 
     // draw hovered indicator
     if (hoveredTileIndex != -1) {
-        V2i coords = grid_getCoordsFromTileIndex(SCENE_COLS, hoveredTileIndex);
+        V2i coords = grid_getCoordsFromTileIndex(SCENE_DATA->cols, hoveredTileIndex);
         IsoRec tile = grid_toIsoRec(SCENE_TRANSFORM, coords, (V2i){1, 1});
         drawIsoRecLines(tile, BROWN);
     }

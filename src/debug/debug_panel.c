@@ -1,6 +1,7 @@
 #include "../core/asset_manager.h"
 #include "../game/constants.h"
 #include "../game/scenes/scene.h"
+#include "../game/scenes/scene_data.h"
 #include "../input/input.h"
 #include "../utils/grid.h"
 #include "../utils/utils.h"
@@ -33,7 +34,7 @@ void drawBufferAndMoveToNextLine() {
 }
 
 void writeHoveredTile() {
-    V2i tileCoords = grid_getCoordsFromTileIndex(SCENE_COLS, *scene_hoveredTileIndex);
+    V2i tileCoords = grid_getCoordsFromTileIndex(SCENE_DATA->cols, *scene_hoveredTileIndex);
     snprintf(buffer, sizeof(buffer), "[ %d, %d ]", tileCoords.x, tileCoords.y);
 }
 

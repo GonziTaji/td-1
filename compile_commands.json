@@ -233,6 +233,21 @@
    "-g",
    "-Werror",
    "-c",
+   "src/game/scenes/scene_data.c",
+   "-o",
+   "build/game/scenes/scene_data.o"
+  ],
+  "file": "src/game/scenes/scene_data.c"
+ },
+ {
+  "directory": "/home/yogusita/proyectos/td-1",
+  "arguments": [
+   "gcc",
+   "-Wall",
+   "-Iinclude",
+   "-g",
+   "-Werror",
+   "-c",
    "src/game/game.c",
    "-o",
    "build/game/game.o"

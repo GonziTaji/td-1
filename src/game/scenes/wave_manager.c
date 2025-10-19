@@ -3,6 +3,7 @@
 #include "../../utils/utils.h"
 #include "../constants.h"
 #include "../gameplay.h"
+#include "./scene_data.h"
 #include "./view_mamanger.h"
 #include <raylib.h>
 #include <raymath.h>
@@ -15,17 +16,6 @@ typedef enum {
     MOB_STATUS_ALIVE,
     MOB_STATUS_DEAD,
 } MobStatus;
-
-int waypointsCount = 6;
-
-V2i pathWaypoints[] = {
-    {.x = 0, .y = 0},
-    {.x = 0, .y = 5},
-    {.x = 12, .y = 5},
-    {.x = 12, .y = 3},
-    {.x = 14, .y = 3},
-    {.x = 14, .y = 10},
-};
 
 #define MAX_MOBS 128
 
@@ -77,6 +67,9 @@ void drawMobs() {
         DrawRectanglePro(mobRect, Vector2Zero(), 0, RED);
 
         if (gameplay_drawInfo) {
+            snprintf(buffer, 16, "%d", mobsHealth[i]);
+            DrawText(buffer, drawOrigin.x, drawOrigin.y - 30, 16, WHITE);
+
             snprintf(buffer, 16, "%d", i);
             DrawText(buffer, drawOrigin.x, drawOrigin.y + 30, 16, WHITE);
         }
@@ -84,9 +77,9 @@ void drawMobs() {
 }
 
 void drawPath() {
-    for (int indexEnd = 1; indexEnd < waypointsCount; indexEnd++) {
-        V2i waypointStart = pathWaypoints[indexEnd - 1];
-        V2i waypointEnd = pathWaypoints[indexEnd];
+    for (int indexEnd = 1; indexEnd < SCENE_DATA->pathWaypointsCount; indexEnd++) {
+        V2i waypointStart = SCENE_DATA->pathWaypoints[indexEnd - 1];
+        V2i waypointEnd = SCENE_DATA->pathWaypoints[indexEnd];
 
         Vector2 start = grid_getTileCenter(SCENE_TRANSFORM, waypointStart.x, waypointStart.y);
         Vector2 end = grid_getTileCenter(SCENE_TRANSFORM, waypointEnd.x, waypointEnd.y);
@@ -107,6 +100,14 @@ Vector2 wave_mob_getPosition(int mobIndex) {
     return mobsPosition[mobIndex];
 }
 
+void wave_mob_takeDamage(int mobIndex, int damage) {
+    mobsHealth[mobIndex] -= damage;
+
+    if (mobsHealth[mobIndex] <= 0) {
+        mobsStatus[mobIndex] = MOB_STATUS_DEAD;
+    }
+}
+
 // This could change if there are N waves in the screen,
 // and is cleaner than exposing `waveMobsCount` with a pointer
 int wave_getMobCount() {
@@ -114,9 +115,9 @@ int wave_getMobCount() {
 }
 
 bool wave_isPath(int tileX, int tileY) {
-    for (int indexEnd = 1; indexEnd < waypointsCount; indexEnd++) {
-        V2i waypointStart = pathWaypoints[indexEnd - 1];
-        V2i waypointEnd = pathWaypoints[indexEnd];
+    for (int indexEnd = 1; indexEnd < SCENE_DATA->pathWaypointsCount; indexEnd++) {
+        V2i waypointStart = SCENE_DATA->pathWaypoints[indexEnd - 1];
+        V2i waypointEnd = SCENE_DATA->pathWaypoints[indexEnd];
 
         if (waypointStart.x <= tileX && tileX <= waypointEnd.x && waypointStart.y <= tileY
             && tileY <= waypointEnd.y) {
@@ -163,8 +164,8 @@ void wave_update(float deltaTime) {
             mobsStatus[mobsSpawned] = MOB_STATUS_ALIVE;
             mobsTargetWaypointIndex[mobsSpawned] = 1;
             mobsTimeInCurrentPath[mobsSpawned] = 0;
-            mobsPosition[mobsSpawned]
-                = grid_getTileCenter(SCENE_TRANSFORM, pathWaypoints[0].x, pathWaypoints[0].y);
+            mobsPosition[mobsSpawned] = grid_getTileCenter(
+                SCENE_TRANSFORM, SCENE_DATA->pathWaypoints[0].x, SCENE_DATA->pathWaypoints[0].y);
 
             mobsSpawned++;
         }
@@ -173,11 +174,11 @@ void wave_update(float deltaTime) {
     for (int i = 0; i < mobsSpawned; i++) {
         if (mobsStatus[i] == MOB_STATUS_ALIVE) {
             int waypointIndex = mobsTargetWaypointIndex[i];
-            V2i waypointCoords = pathWaypoints[waypointIndex];
+            V2i waypointCoords = SCENE_DATA->pathWaypoints[waypointIndex];
             Vector2 waypointPos
                 = grid_getTileCenter(SCENE_TRANSFORM, waypointCoords.x, waypointCoords.y);
 
-            V2i prevWaypointCoords = pathWaypoints[waypointIndex - 1];
+            V2i prevWaypointCoords = SCENE_DATA->pathWaypoints[waypointIndex - 1];
             Vector2 prevWaypointPos
                 = grid_getTileCenter(SCENE_TRANSFORM, prevWaypointCoords.x, prevWaypointCoords.y);
 
@@ -205,7 +206,7 @@ void wave_update(float deltaTime) {
             mobsPosition[i] = Vector2Clamp(mobsPosition[i], posMin, posMax);
 
             if (mobsTimeInCurrentPath[i] >= pathTime) {
-                if (mobsTargetWaypointIndex[i] == waypointsCount - 1) {
+                if (mobsTargetWaypointIndex[i] == SCENE_DATA->pathWaypointsCount - 1) {
                     mobsStatus[i] = MOB_STATUS_INACTIVE;
                     continue;
                 }

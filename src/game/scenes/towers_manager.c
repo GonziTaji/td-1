@@ -3,6 +3,7 @@
 #include "../../utils/utils.h"
 #include "../constants.h"
 #include "../gameplay.h"
+#include "./scene_data.h"
 #include "./view_mamanger.h"
 #include "wave_manager.h"
 #include <raymath.h>
@@ -30,6 +31,7 @@ float TOWER_RATE_OF_FIRE = 3.0f;
 float TOWER_RANGE = 60.0f * SCENE_SCALE_INITIAL;
 
 const int BULLET_SPEED = 800; // pixels per second
+const int BULLET_DAMAGE = 14;
 
 typedef struct {
     bool alive;
@@ -75,11 +77,9 @@ bool isInRange(int mobIndex, Vector2 towerPos, float towerRange) {
 /// @param `maxDistanceSqrt` - the tower range squared, to be compared to the distance squared (to
 /// avoid square roots)
 int getTowerTarget(Vector2 towerPosition) {
-    int lastIndexInRange = -1;
-
     int mobCount = wave_getMobCount();
 
-    for (int i = mobCount; i >= 0; i--) {
+    for (int i = 0; i < mobCount; i++) {
         if (!wave_mob_isAlive(i)) {
             continue;
         }
@@ -88,12 +88,10 @@ int getTowerTarget(Vector2 towerPosition) {
             continue;
         }
 
-        if (lastIndexInRange < i) {
-            lastIndexInRange = i;
-        }
+        return i;
     }
 
-    return lastIndexInRange;
+    return -1;
 }
 
 void placeTower(int x, int y) {
@@ -146,7 +144,7 @@ void towers_handleInput() {
         V2i coords = grid_worldPointToCoords(
             SCENE_TRANSFORM, input.worldMousePos.x, input.worldMousePos.y);
 
-        if (grid_isValidCoords(SCENE_COLS, SCENE_ROWS, coords.x, coords.y)) {
+        if (grid_isValidCoords(SCENE_DATA->cols, SCENE_DATA->rows, coords.x, coords.y)) {
             placeTower(coords.x, coords.y);
         }
     }
@@ -217,6 +215,7 @@ void updateBullets(float deltaTime) {
         towerBullets[i].travelProgress = Clamp(towerBullets[i].travelProgress, 0, 1);
 
         if (towerBullets[i].travelProgress == 1) {
+            wave_mob_takeDamage(towerBullets[i].mobTargetIndex, BULLET_DAMAGE);
             towerBullets[i].alive = false;
         }
 
@@ -259,7 +258,7 @@ void drawRangeIndicator(int towerX, int towerY) {
 void drawTowerToPlace() {
     Vector2 m = input.worldMousePos;
     V2i coords = grid_worldPointToCoords(SCENE_TRANSFORM, m.x, m.y);
-    if (grid_isValidCoords(SCENE_COLS, SCENE_ROWS, coords.x, coords.y)) {
+    if (grid_isValidCoords(SCENE_DATA->cols, SCENE_DATA->rows, coords.x, coords.y)) {
         Vector2 tileCenter = grid_getTileCenter(SCENE_TRANSFORM, coords.x, coords.y);
         drawTower(tileCenter);
         drawRangeIndicator(coords.x, coords.y);

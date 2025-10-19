@@ -1,6 +1,2 @@
-#define SCENE_COLS 16
-#define SCENE_ROWS 16
-#define SCENE_TILE_COUNT (SCENE_COLS * SCENE_ROWS)
-
 #define TILE_WIDTH 32
 #define TILE_HEIGHT (int)(TILE_WIDTH / 2)

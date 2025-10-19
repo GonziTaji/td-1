@@ -1,0 +1,17 @@
+# NAME
+"test 1"
+
+# GRID - cols rows
+G 16 11
+
+# WAYPOINTS - x y
+P 1 0
+P 1 5
+P 12 5
+P 12 3
+P 14 3
+P 14 10
+
+# WAVES - wave mobsCount mobsHp mobsSpeed
+W 40 100 300
+W 60 70 700
