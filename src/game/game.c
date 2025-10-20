@@ -23,7 +23,7 @@ void calculateGameView(Game *game) {
 void game_init(Game *game) {
     game->gameplaySpeed = GAMEPLAY_SPEED_NORMAL;
 
-    scene_init();
+    scene_init(1);
 
     calculateGameView(game);
 }

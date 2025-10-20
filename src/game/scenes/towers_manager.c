@@ -15,7 +15,7 @@
 
 static char buffer[16];
 
-bool placingTower = false;
+GameplayMode gameplayMode = GAMEPLAY_MODE_NORMAL;
 
 typedef struct {
     bool onScene;
@@ -79,6 +79,9 @@ bool isInRange(int mobIndex, Vector2 towerPos, float towerRange) {
 int getTowerTarget(Vector2 towerPosition) {
     int mobCount = wave_getMobCount();
 
+    int mostTraveled = 0;
+    int targetIndex = -1;
+
     for (int i = 0; i < mobCount; i++) {
         if (!wave_mob_isAlive(i)) {
             continue;
@@ -88,10 +91,15 @@ int getTowerTarget(Vector2 towerPosition) {
             continue;
         }
 
-        return i;
+        float traveled = wave_mob_getPercentajeTraveled(i);
+
+        if (traveled > mostTraveled) {
+            mostTraveled = traveled;
+            targetIndex = i;
+        }
     }
 
-    return -1;
+    return targetIndex;
 }
 
 void placeTower(int x, int y) {
@@ -123,7 +131,7 @@ void placeTower(int x, int y) {
         // will shoot as soon as it has a target
         towersTimeSinceLastShot[firstAvailableIndex] = 1.0f / TOWER_RATE_OF_FIRE;
 
-        placingTower = false;
+        gameplayMode = GAMEPLAY_MODE_NORMAL;
     }
 
     // nothing happens if the tower is not set because there's no more space
@@ -131,7 +139,7 @@ void placeTower(int x, int y) {
 
 void removeTower(int x, int y) {
     for (int i = 0; i < SCENE_MAX_TOWERS; i++) {
-        if (towersPool[i].coords.x == x && towersPool[i].coords.y) {
+        if (towersPool[i].coords.x == x && towersPool[i].coords.y == y) {
             towersPool[i].onScene = false;
 
             return;
@@ -139,18 +147,48 @@ void removeTower(int x, int y) {
     }
 }
 
+void towers_clear() {
+    gameplayMode = GAMEPLAY_MODE_NORMAL;
+
+    for (int i = 0; i < SCENE_MAX_TOWERS; i++) {
+        towersPool[i].onScene = false;
+        towersPool[i].currentTargetMobIndex = -1;
+        towersTimeSinceLastShot[i] = 0;
+    }
+
+    for (int i = 0; i < SCENE_MAX_BULLETS; i++) {
+        towerBullets[i].alive = false;
+    }
+}
+
 void towers_handleInput() {
-    if (placingTower && input.mouseButtonState[MOUSE_BUTTON_LEFT] == MOUSE_BUTTON_STATE_PRESSED) {
+    if (input.mouseButtonState[MOUSE_BUTTON_LEFT] == MOUSE_BUTTON_STATE_PRESSED) {
         V2i coords = grid_worldPointToCoords(
             SCENE_TRANSFORM, input.worldMousePos.x, input.worldMousePos.y);
 
         if (grid_isValidCoords(SCENE_DATA->cols, SCENE_DATA->rows, coords.x, coords.y)) {
-            placeTower(coords.x, coords.y);
+            switch (gameplayMode) {
+            case GAMEPLAY_MODE_NORMAL:
+                // Select tower?
+                break;
+            case GAMEPLAY_MODE_TOWER_REMOVE:
+                removeTower(coords.x, coords.y);
+                break;
+            case GAMEPLAY_MODE_TOWER_PLACE:
+                placeTower(coords.x, coords.y);
+                break;
+            }
         }
     }
 
     if (input.keyPressed == KEY_T) {
-        placingTower = !placingTower;
+        gameplayMode = gameplayMode != GAMEPLAY_MODE_TOWER_PLACE ? GAMEPLAY_MODE_TOWER_PLACE
+                                                                 : GAMEPLAY_MODE_NORMAL;
+    }
+
+    if (input.keyPressed == KEY_R) {
+        gameplayMode = gameplayMode != GAMEPLAY_MODE_TOWER_REMOVE ? GAMEPLAY_MODE_TOWER_REMOVE
+                                                                  : GAMEPLAY_MODE_NORMAL;
     }
 }
 
@@ -195,6 +233,9 @@ void updateTowers(float deltaTime) {
     }
 }
 
+// --------
+// UPDATE -
+
 void updateBullets(float deltaTime) {
     for (int i = 0; i < SCENE_MAX_BULLETS; i++) {
         if (!towerBullets[i].alive) {
@@ -233,7 +274,10 @@ void towers_update(float deltaTime) {
 // DRAW -
 
 void drawTower(Vector2 towerCenter) {
-    DrawEllipse(towerCenter.x, towerCenter.y, 16, 8, WHITE);
+    Color towerColor
+        = gameplayMode == GAMEPLAY_MODE_TOWER_REMOVE ? (Color){186, 54, 45, 255} : WHITE;
+
+    DrawEllipse(towerCenter.x, towerCenter.y, 16, 8, towerColor);
 }
 
 void drawRangeIndicator(int towerX, int towerY) {
@@ -300,7 +344,7 @@ void towers_draw() {
         }
     }
 
-    if (placingTower) {
+    if (gameplayMode == GAMEPLAY_MODE_TOWER_PLACE) {
         drawTowerToPlace();
     }
 

@@ -24,8 +24,11 @@ void drawIsoRecLines(IsoRec isoRec, Color color) {
     DrawLineEx(isoRec.right, isoRec.top, 2, color);
 }
 
-void scene_init() {
-    scene_data_load(1);
+void scene_init(int sceneIndex) {
+    scene_data_load(sceneIndex);
+
+    towers_clear();
+    wave_clear();
 }
 
 void scene_handleInput() {
@@ -35,16 +38,23 @@ void scene_handleInput() {
     hoveredTileIndex = grid_getTileIndexFromCoords(
         SCENE_DATA->cols, SCENE_DATA->rows, hoveredCoords.x, hoveredCoords.y);
 
-    view_handleInput();
-    towers_handleInput();
-
     if (input.keyPressed == KEY_SPACE) {
-        wave_start(40);
+        wave_startNext();
     }
 
     if (input.keyPressed == KEY_LEFT_ALT) {
         gameplay_drawInfo = !gameplay_drawInfo;
     }
+
+    // temporal
+    if (input.keyPressed == KEY_F1) {
+        scene_init(1);
+    } else if (input.keyPressed == KEY_F2) {
+        scene_init(2);
+    }
+
+    view_handleInput();
+    towers_handleInput();
 }
 
 void scene_update(float deltaTime) {

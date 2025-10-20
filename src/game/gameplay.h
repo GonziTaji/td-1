@@ -8,4 +8,10 @@ typedef enum {
     GAMEPLAY_SPEED_COUNT,
 } GameplaySpeed;
 
+typedef enum {
+    GAMEPLAY_MODE_NORMAL,
+    GAMEPLAY_MODE_TOWER_REMOVE,
+    GAMEPLAY_MODE_TOWER_PLACE,
+} GameplayMode;
+
 extern bool gameplay_drawInfo;

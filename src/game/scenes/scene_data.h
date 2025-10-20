@@ -1,5 +1,6 @@
 #include "../../utils/utils.h"
 
+#define SCENE_DATA_MAX_MOBS 1024
 #define SCENE_DATA_MAX_WAYPOINTS 10
 #define SCENE_DATA_MAX_WAVES 10
 

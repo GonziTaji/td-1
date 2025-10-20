@@ -1,5 +1,6 @@
 #include "./scene_data.h"
 #include "../../utils/utils.h"
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -29,6 +30,8 @@ void parseSceneFile(const char *path) {
     int lineNumber = 0;
     bool nameFound = false;
 
+    int totalMobsCount = 0;
+
     while (fgets(line, sizeof(line), f)) {
         lineNumber++;
 
@@ -49,46 +52,39 @@ void parseSceneFile(const char *path) {
         case 'G': { // Grid
             int scanResponse = sscanf(line, "G %d %d", &data.cols, &data.rows);
 
-            if (scanResponse != 2) {
-                printf("Error parsing grid on line %d: %s\n", lineNumber, line);
-            }
+            assert(scanResponse == 2 && "Error parsing grid line. Missing values?");
         } break;
 
         case 'P': { // Waypoint
-            if (data.pathWaypointsCount >= SCENE_DATA_MAX_WAYPOINTS) {
-                printf("Skipping waypoint on line %d because max waypoints reached", lineNumber);
-                break;
-            }
+            assert(data.pathWaypointsCount <= SCENE_DATA_MAX_WAYPOINTS
+                   && "Scene data with too many waypoints");
 
             V2i *p = &data.pathWaypoints[data.pathWaypointsCount];
             int scanResponse = sscanf(line, "P %d %d", &p->x, &p->y);
 
-            if (scanResponse == 2) {
-                data.pathWaypointsCount++;
-            } else {
-                printf("Error parsing waypoint on line %d: %s\n", lineNumber, line);
-            }
+            assert(scanResponse == 2 && "Line failed to be parsed. Missing values?");
+
+            data.pathWaypointsCount++;
         } break;
 
         case 'W': { // Wave
-            if (data.wavesCount >= SCENE_DATA_MAX_WAVES) {
-                printf("Skipping wave on line %d because max waves reached", lineNumber);
-                break;
-            }
+            assert(data.wavesCount <= SCENE_DATA_MAX_WAVES && "Scene data with too many waves");
 
             WaveData *w = &data.waves[data.wavesCount];
             int scanResponse
                 = sscanf(line, "W %d %d %f", &w->mobsCount, &w->mobMaxHealth, &w->mobMovementSpeed);
 
-            if (scanResponse == 4) {
-                data.wavesCount++;
-            } else {
-                printf("Error parsing wave on line %d: %s\n", lineNumber, line);
-            }
+            assert(scanResponse == 3 && "Line failed to be parsed. Missing values?");
+
+            totalMobsCount += w->mobsCount;
+
+            assert(totalMobsCount <= SCENE_DATA_MAX_MOBS && "Scene data with too many mobs");
+
+            data.wavesCount++;
         } break;
 
         default:
-            printf("Línea desconocida (%d): %s\n", lineNumber, line);
+            printf("Unknown line (%d): %s\n", lineNumber, line);
         }
     }
 
