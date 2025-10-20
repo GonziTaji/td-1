@@ -13,7 +13,7 @@ float wave_mob_getPercentajeTraveled(int mobIndex);
 bool wave_isPath(int tileX, int tileY);
 
 // lifecycle
-void wave_clear();
+void wave_initData();
 void wave_startNext();
 void wave_update(float deltaTime);
 // draw

@@ -1,10 +1,12 @@
 #include "./wave_manager.h"
+#include "../../core/asset_manager.h"
 #include "../../utils/grid.h"
 #include "../../utils/utils.h"
 #include "../constants.h"
 #include "../gameplay.h"
 #include "./scene_data.h"
 #include "./view_mamanger.h"
+#include <assert.h>
 #include <raylib.h>
 #include <raymath.h>
 #include <stdio.h>
@@ -17,23 +19,18 @@ typedef enum {
     MOB_STATUS_DEAD,
 } MobStatus;
 
-// typedef enum {
-//     MOB_TYPE_RED,
-//     MOB_TYPE_BLUE,
-//     MOB_TYPE_COUNT,
-// } MobType;
-//
-// struct {
-//     int maxHealth;
-//     float movementSpeed;
-// } mobTypeData[MOB_TYPE_COUNT] = {
-//     [MOB_TYPE_RED] = { 100, 1 },
-//     [MOB_TYPE_BLUE] = { 30, 2 },
-// };
+struct {
+    int maxHealth;
+    float movementSpeed;
+} mobTypeData[MOB_TYPE_COUNT] = {
+    [MOB_TYPE_RED] = {100, 1},
+    [MOB_TYPE_BLUE] = {30, 2},
+};
 
 int currentWaveIndex = -1;
 
 int mobsHealth[SCENE_DATA_MAX_MOBS];
+MobType mobsTypes[SCENE_DATA_MAX_MOBS];
 int mobsWaveIndex[SCENE_DATA_MAX_MOBS];
 Vector2 mobsPosition[SCENE_DATA_MAX_MOBS];
 MobStatus mobsStatus[SCENE_DATA_MAX_MOBS];
@@ -42,24 +39,25 @@ float mobsTimeInCurrentPath[SCENE_DATA_MAX_MOBS];
 // Tiles that it crosses in one second
 float mobsMovementSpeed[SCENE_DATA_MAX_MOBS];
 
-int waveMobsCount = 0;
+int totalMobsCount = 0;
 
 float spawnCooldownSeconds = 0.4f;
-
-float wavesSpawnTimers[SCENE_DATA_MAX_WAVES];
-float waves[SCENE_DATA_MAX_WAVES];
 
 typedef enum {
     WAVE_STATUS_NOT_STARTED,
     WAVE_STATUS_STARTED,
+    WAVE_STATUS_ENDED,
 } WaveStatus;
 
 WaveStatus wavesStatus[SCENE_DATA_MAX_WAVES];
+float wavesSpawnTimers[SCENE_DATA_MAX_WAVES];
+float wavesStartTimer[SCENE_DATA_MAX_WAVES];
+float wavesMobsRemainingToSpawn[SCENE_DATA_MAX_WAVES];
 
 void drawMobs() {
     char buffer[16];
 
-    for (int i = 0; i < waveMobsCount; i++) {
+    for (int i = 0; i < totalMobsCount; i++) {
         if (mobsStatus[i] != MOB_STATUS_ALIVE) {
             continue;
         }
@@ -70,21 +68,37 @@ void drawMobs() {
         Vector2 drawOrigin
             = Vector2Subtract(mobsPosition[i], (Vector2){mobWidth / 2.0f, mobHeight / 2.0f});
 
-        Rectangle mobRect = {
+        Rectangle mobRec = {
             drawOrigin.x,
             drawOrigin.y,
             mobWidth,
             mobHeight,
         };
 
-        DrawRectanglePro(mobRect, Vector2Zero(), 0, RED);
+        Color mobColor = WHITE;
+
+        switch (mobsTypes[i]) {
+        case MOB_TYPE_RED:
+            mobColor = RED;
+            break;
+        case MOB_TYPE_BLUE:
+            mobColor = BLUE;
+            break;
+        case MOB_TYPE_COUNT:
+            assert(false && "Unexpected MOB_TYPE_COUNT enum value");
+            break;
+        }
+
+        DrawRectangleRec(mobRec, mobColor);
 
         if (gameplay_drawInfo) {
+            drawOrigin.y -= 30;
             snprintf(buffer, 16, "%d", mobsHealth[i]);
-            DrawText(buffer, drawOrigin.x, drawOrigin.y - 30, 16, WHITE);
+            DrawTextEx(uiFont, buffer, drawOrigin, 16, 1, WHITE);
 
+            drawOrigin.y += 30 + 30;
             snprintf(buffer, 16, "%d", i);
-            DrawText(buffer, drawOrigin.x, drawOrigin.y + 30, 16, WHITE);
+            DrawTextEx(uiFont, buffer, drawOrigin, 16, 1, WHITE);
         }
     }
 }
@@ -165,7 +179,7 @@ float wave_mob_getPercentajeTraveled(int mobIndex) {
 }
 
 int wave_getMobCount() {
-    return waveMobsCount;
+    return totalMobsCount;
 }
 
 bool wave_isPath(int tileX, int tileY) {
@@ -182,9 +196,9 @@ bool wave_isPath(int tileX, int tileY) {
     return false;
 }
 
-void wave_clear() {
+void wave_initData() {
     currentWaveIndex = -1;
-    waveMobsCount = 0;
+    totalMobsCount = 0;
 
     for (int i = 0; i < SCENE_DATA_MAX_MOBS; i++) {
         mobsStatus[i] = MOB_STATUS_INACTIVE;
@@ -193,8 +207,28 @@ void wave_clear() {
     }
 
     for (int i = 0; i < SCENE_DATA_MAX_WAVES; i++) {
-        wavesSpawnTimers[i] = 0;
+        const WaveData *currentWave = &SCENE_DATA->waves[i];
+
+        wavesSpawnTimers[i] = spawnCooldownSeconds;
         wavesStatus[i] = WAVE_STATUS_NOT_STARTED;
+        wavesStartTimer[i] = currentWave->startDelaySeconds;
+        wavesMobsRemainingToSpawn[i] = currentWave->mobsCount;
+
+        int oldMobsCount = totalMobsCount;
+        totalMobsCount += currentWave->mobsCount;
+
+        for (int i = oldMobsCount; i < totalMobsCount; i++) {
+            mobsStatus[i] = MOB_STATUS_WAITING_SPAWN;
+            mobsTypes[i] = currentWave->mobType;
+            mobsHealth[i] = mobTypeData[currentWave->mobType].maxHealth;
+            mobsWaveIndex[i] = currentWaveIndex;
+            mobsMovementSpeed[i] = mobTypeData[currentWave->mobType].movementSpeed;
+            mobsTimeInCurrentPath[i] = 0;
+            mobsTargetWaypointIndex[i] = 1;
+
+            const V2i *coords = &SCENE_DATA->pathWaypoints[0];
+            mobsPosition[i] = grid_getTileCenter(SCENE_TRANSFORM, coords->x, coords->y);
+        }
     }
 }
 
@@ -208,18 +242,20 @@ void wave_startNext() {
 
     wavesStatus[currentWaveIndex] = WAVE_STATUS_STARTED;
     wavesSpawnTimers[currentWaveIndex] = spawnCooldownSeconds;
+    wavesStartTimer[currentWaveIndex] = SCENE_DATA->waves[currentWaveIndex].startDelaySeconds;
 
     const WaveData *currentWave = &SCENE_DATA->waves[currentWaveIndex];
 
-    int oldMobsCount = waveMobsCount;
+    int oldMobsCount = totalMobsCount;
 
-    waveMobsCount += currentWave->mobsCount;
+    totalMobsCount += currentWave->mobsCount;
 
-    for (int i = oldMobsCount; i < waveMobsCount; i++) {
+    for (int i = oldMobsCount; i < totalMobsCount; i++) {
         mobsStatus[i] = MOB_STATUS_WAITING_SPAWN;
-        mobsHealth[i] = currentWave->mobMaxHealth;
+        mobsTypes[i] = currentWave->mobType;
+        mobsHealth[i] = mobTypeData[currentWave->mobType].maxHealth;
         mobsWaveIndex[i] = currentWaveIndex;
-        mobsMovementSpeed[i] = currentWave->mobMovementSpeed;
+        mobsMovementSpeed[i] = mobTypeData[currentWave->mobType].movementSpeed;
         mobsTimeInCurrentPath[i] = 0;
         mobsTargetWaypointIndex[i] = 1;
 
@@ -230,19 +266,40 @@ void wave_startNext() {
 
 void wave_update(float deltaTime) {
     for (int i = 0; i < SCENE_DATA->wavesCount; i++) {
-        if (wavesStatus[i] == WAVE_STATUS_NOT_STARTED) {
+        // TODO: switch?
+        if (wavesStatus[i] == WAVE_STATUS_ENDED) {
             continue;
         }
 
-        wavesSpawnTimers[i] -= deltaTime;
+        WaveStatus prevWaveStatus = i == 0 ? WAVE_STATUS_ENDED : wavesStatus[i - 1];
+
+        if (wavesStatus[i] == WAVE_STATUS_NOT_STARTED && prevWaveStatus == WAVE_STATUS_ENDED) {
+            wavesStartTimer[i] -= deltaTime;
+
+            if (wavesStartTimer[i] <= 0) {
+                wave_startNext();
+            }
+
+            // if this wave was not started, the rest of the waves have not started
+            break;
+        }
+
+        if (wavesStatus[i] == WAVE_STATUS_STARTED) {
+            if (wavesMobsRemainingToSpawn[i] == 0) {
+                wavesStatus[i] = WAVE_STATUS_ENDED;
+            }
+
+            wavesSpawnTimers[i] -= deltaTime;
+        }
     }
 
-    for (int i = 0; i < waveMobsCount; i++) {
+    for (int i = 0; i < totalMobsCount; i++) {
         int waveIndex = mobsWaveIndex[i];
 
         if (mobsStatus[i] == MOB_STATUS_WAITING_SPAWN && wavesSpawnTimers[waveIndex] <= 0) {
-            wavesSpawnTimers[waveIndex] += spawnCooldownSeconds;
             mobsStatus[i] = MOB_STATUS_ALIVE;
+            wavesSpawnTimers[waveIndex] += spawnCooldownSeconds;
+            wavesMobsRemainingToSpawn[waveIndex]--;
         }
 
         if (mobsStatus[i] == MOB_STATUS_ALIVE) {

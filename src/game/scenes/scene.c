@@ -28,7 +28,7 @@ void scene_init(int sceneIndex) {
     scene_data_load(sceneIndex);
 
     towers_clear();
-    wave_clear();
+    wave_initData();
 }
 
 void scene_handleInput() {

@@ -12,12 +12,12 @@ P 12 3
 P 14 3
 P 14 10
 
-# WAVES - wave mobsCount mobsHp mobsSpeed
-W 10 300 2
-W 80 20 7
-W 80 20 7
-W 10 300 2
-W 80 20 7
-W 80 20 7
-W 10 300 2
-W 80 20 7
+# WAVES - startDelay(seconds) mobType mobsCount
+W 5 0 10
+W 5 1 30
+W 0 0 10
+W 5 1 30
+W 0 0 10
+W 5 1 30
+W 0 0 10
+W 5 1 30

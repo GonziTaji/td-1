@@ -11,6 +11,11 @@ P 5 5
 P 5 7
 P 0 7
 
-# WAVES - wave mobsCount mobsHp mobsSpeed
-W 20 100 1.0f
-W 20 30 2.0f
+# WAVES - startDelay(seconds) mobType mobsCount
+W 0 0 5
+W 0 1 10
+W 0 0 5 
+W 0 1 10
+W 0 0 5
+W 0 1 10
+W 0 1 5

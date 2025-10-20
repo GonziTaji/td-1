@@ -47,7 +47,7 @@ void parseSceneFile(const char *path) {
             nameFound = true;
             continue;
         }
-
+        // ok
         switch (line[0]) {
         case 'G': { // Grid
             int scanResponse = sscanf(line, "G %d %d", &data.cols, &data.rows);
@@ -71,10 +71,11 @@ void parseSceneFile(const char *path) {
             assert(data.wavesCount <= SCENE_DATA_MAX_WAVES && "Scene data with too many waves");
 
             WaveData *w = &data.waves[data.wavesCount];
-            int scanResponse
-                = sscanf(line, "W %d %d %f", &w->mobsCount, &w->mobMaxHealth, &w->mobMovementSpeed);
+            int scanResponse = sscanf(
+                line, "W %d %d %d", &w->startDelaySeconds, (int *)(&w->mobType), &w->mobsCount);
 
             assert(scanResponse == 3 && "Line failed to be parsed. Missing values?");
+            assert(w->mobType < MOB_TYPE_COUNT && "Invalid mob type");
 
             totalMobsCount += w->mobsCount;
 
@@ -100,7 +101,7 @@ void scene_data_load(int sceneIndex) {
     data.wavesCount = 0;
 
     for (int i = 0; i < SCENE_DATA_MAX_WAVES; i++) {
-        data.waves[i] = (WaveData){0, 0, 0};
+        data.waves[i] = (WaveData){.mobsCount = 0, .mobType = 0};
     }
 
     for (int i = 0; i < SCENE_DATA_MAX_WAYPOINTS; i++) {

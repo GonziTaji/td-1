@@ -6,10 +6,16 @@
 
 #define SCENE_DATA_NAME_MAX_LENGTH 64
 
+typedef enum {
+    MOB_TYPE_RED,
+    MOB_TYPE_BLUE,
+    MOB_TYPE_COUNT,
+} MobType;
+
 typedef struct {
+    int startDelaySeconds;
     int mobsCount;
-    int mobMaxHealth;
-    float mobMovementSpeed;
+    MobType mobType;
 } WaveData;
 
 typedef struct {
