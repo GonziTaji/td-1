@@ -271,17 +271,14 @@ void wave_update(float deltaTime) {
             continue;
         }
 
-        WaveStatus prevWaveStatus = i == 0 ? WAVE_STATUS_ENDED : wavesStatus[i - 1];
-
-        if (wavesStatus[i] == WAVE_STATUS_NOT_STARTED && prevWaveStatus == WAVE_STATUS_ENDED) {
+        if (wavesStatus[i] == WAVE_STATUS_NOT_STARTED) {
             wavesStartTimer[i] -= deltaTime;
 
             if (wavesStartTimer[i] <= 0) {
                 wave_startNext();
             }
 
-            // if this wave was not started, the rest of the waves have not started
-            break;
+            continue;
         }
 
         if (wavesStatus[i] == WAVE_STATUS_STARTED) {
