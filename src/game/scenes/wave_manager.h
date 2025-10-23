@@ -1,14 +1,19 @@
 #pragma once
+#include "./scene_data.h"
 #include <raylib.h>
 #include <stdbool.h>
 
 // utils
 int wave_getMobCount();
+
 // utils - mob
+void wave_mob_removeModifier(int mobIndex, int modifierId);
+void wave_mob_addModifier(int mobIndex, const StatModifier *modifierData);
 int wave_mob_isAlive(int mobIndex);
 Vector2 wave_mob_getPosition(int mobIndex);
 void wave_mob_takeDamage(int mobIndex, int damage);
 float wave_mob_getPercentajeTraveled(int mobIndex);
+
 // utils - path
 bool wave_isPath(int tileX, int tileY);
 
@@ -16,6 +21,7 @@ bool wave_isPath(int tileX, int tileY);
 void wave_initData();
 void wave_startNext();
 void wave_update(float deltaTime);
+
 // draw
 void wave_draw();
 void wave_drawInfo();

@@ -4,8 +4,8 @@
 #include "../../utils/utils.h"
 #include "../constants.h"
 #include "../gameplay.h"
-#include "./scene_data.h"
 #include "./view_mamanger.h"
+#include "scene_data.h"
 #include <assert.h>
 #include <raylib.h>
 #include <raymath.h>
@@ -19,12 +19,19 @@ typedef enum {
     MOB_STATUS_DEAD,
 } MobStatus;
 
+typedef struct {
+    const StatModifier *modifier;
+    float timeRemaining;
+    bool isActive;
+} ModifierTimer;
+
 struct {
     int maxHealth;
     float movementSpeed;
+    Color color;
 } mobTypeData[MOB_TYPE_COUNT] = {
-    [MOB_TYPE_RED] = {100, 1},
-    [MOB_TYPE_BLUE] = {30, 2},
+    [MOB_TYPE_RED] = {100, 1, RED},
+    [MOB_TYPE_BLUE] = {30, 2, BLUE},
 };
 
 int currentWaveIndex = -1;
@@ -38,6 +45,7 @@ int mobsTargetWaypointIndex[SCENE_DATA_MAX_MOBS];
 float mobsTimeInCurrentPath[SCENE_DATA_MAX_MOBS];
 // Tiles that it crosses in one second
 float mobsMovementSpeed[SCENE_DATA_MAX_MOBS];
+ModifierTimer mobsModifiersTimers[SCENE_DATA_MAX_MOBS][SCENE_DATA_MAX_MOB_STAT_MODS];
 
 int totalMobsCount = 0;
 
@@ -82,7 +90,6 @@ void drawMobs() {
             mobColor = RED;
             break;
         case MOB_TYPE_BLUE:
-            mobColor = BLUE;
             break;
         case MOB_TYPE_COUNT:
             assert(false && "Unexpected MOB_TYPE_COUNT enum value");
@@ -130,9 +137,118 @@ float getPathTime(int waypointIndex, float movementSpeed) {
     return pathTime;
 }
 
+float applyModifiers(int mobIndex, float value, ModifierEffectType effectType) {
+    float newValue = value;
+
+    ModifierTimer *timers = mobsModifiersTimers[mobIndex];
+
+    for (int i = 0; i < SCENE_DATA_MAX_MOB_STAT_MODS; i++) {
+        const StatModifier *modifier = timers[i].modifier;
+
+        if (modifier == NULL || !timers[i].isActive) {
+            continue;
+        }
+
+        if (modifier->type != effectType) {
+            continue;
+        }
+
+        switch (modifier->valueType) {
+        case MODIFIER_VALUE_TYPE_FLAT:
+            newValue += modifier->value;
+            break;
+        case MODIFIER_VALUE_TYPE_PERCENT:
+            newValue += newValue * (modifier->value / 100);
+            break;
+        case MODIFIER_VALUE_TYPE_MULTIPLIER:
+            newValue *= modifier->value;
+            break;
+        }
+    }
+
+    return newValue;
+}
+
+// float getModifiedMovementSpeed(int mobIndex) {
+//     float movementSpeed = mobsMovementSpeed[mobIndex];
+//
+//     ModifierTimer *timers = mobsModifiersTimers[mobIndex];
+//
+//     for (int i = 0; i < SCENE_DATA_MAX_MOB_STAT_MODS; i++) {
+//         const StatModifier *modifier = timers[i].modifier;
+//
+//         if (modifier == NULL || !timers[i].isActive) {
+//             continue;
+//         }
+//
+//         if (modifier->type != MODIFIER_EFFECT_TYPE_SLOW) {
+//             continue;
+//         }
+//
+//         switch (modifier->valueType) {
+//         case MODIFIER_VALUE_TYPE_FLAT:
+//             movementSpeed += modifier->value;
+//             break;
+//         case MODIFIER_VALUE_TYPE_PERCENT:
+//             movementSpeed += movementSpeed * (modifier->value / 100);
+//             break;
+//         case MODIFIER_VALUE_TYPE_MULTIPLIER:
+//             movementSpeed *= modifier->value;
+//             break;
+//         }
+//     }
+//
+//     return movementSpeed;
+// }
+
 // Public functions
 
-// Wave utils
+// Mob functions
+
+void wave_mob_removeModifier(int mobIndex, int modifierId) {
+    ModifierTimer *timers = mobsModifiersTimers[mobIndex];
+
+    for (int i = 0; i < SCENE_DATA_MAX_MOB_STAT_MODS; i++) {
+        if (timers[i].modifier == NULL) {
+            continue;
+        }
+
+        if (timers[i].modifier->id == modifierId) {
+            timers[i].modifier = NULL;
+            timers[i].isActive = false;
+            return;
+        }
+    }
+}
+
+void wave_mob_addModifier(int mobIndex, const StatModifier *modifierData) {
+    int availableSlotIndex = -1;
+
+    ModifierTimer *timers = mobsModifiersTimers[mobIndex];
+
+    for (int i = 0; i < SCENE_DATA_MAX_MOB_STAT_MODS; i++) {
+        if (timers[i].isActive && timers[i].modifier->id == modifierData->id) {
+            // refresh timer and exit
+            timers[i].timeRemaining = modifierData->duration;
+            return;
+        }
+
+        if (timers[i].isActive) {
+            continue;
+        }
+
+        if (availableSlotIndex == -1) {
+            availableSlotIndex = i;
+            continue;
+        }
+    }
+
+    if (availableSlotIndex != -1) {
+        timers[availableSlotIndex].isActive = true;
+        timers[availableSlotIndex].modifier = modifierData;
+        timers[availableSlotIndex].timeRemaining = modifierData->duration;
+    }
+}
 
 int wave_mob_isAlive(int mobIndex) {
     return mobsStatus[mobIndex] == MOB_STATUS_ALIVE;
@@ -226,8 +342,16 @@ void wave_initData() {
             mobsTimeInCurrentPath[i] = 0;
             mobsTargetWaypointIndex[i] = 1;
 
+            // this will change when multiple spawn points is implemented
             const V2i *coords = &SCENE_DATA->pathWaypoints[0];
             mobsPosition[i] = grid_getTileCenter(SCENE_TRANSFORM, coords->x, coords->y);
+
+            // modifiers
+            for (int j = 0; j < SCENE_DATA_MAX_MOB_STAT_MODS; j++) {
+                mobsModifiersTimers[i][j].modifier = NULL;
+                mobsModifiersTimers[i][j].timeRemaining = 0;
+                mobsModifiersTimers[i][j].isActive = false;
+            }
         }
     }
 }
@@ -311,7 +435,7 @@ void wave_update(float deltaTime) {
 
             float pathTime = getPathTime(waypointIndex, mobsMovementSpeed[i]);
 
-            mobsTimeInCurrentPath[i] += deltaTime;
+            mobsTimeInCurrentPath[i] += applyModifiers(i, deltaTime, MODIFIER_EFFECT_TYPE_SLOW);
             mobsTimeInCurrentPath[i] = Clamp(mobsTimeInCurrentPath[i], 0, pathTime);
 
             float t = mobsTimeInCurrentPath[i] / pathTime;
@@ -337,7 +461,25 @@ void wave_update(float deltaTime) {
 
                 mobsTargetWaypointIndex[i]++;
                 mobsTimeInCurrentPath[i] = 0;
-                continue;
+            }
+
+            for (int timerIndex = 0; timerIndex < SCENE_DATA_MAX_MOB_STAT_MODS; timerIndex++) {
+                ModifierTimer *timer = &mobsModifiersTimers[i][timerIndex];
+
+                if (timer == NULL || !timer->isActive) {
+                    continue;
+                }
+
+                if (timer->modifier->durationType == DURATION_TYPE_PERMANENT) {
+                    continue;
+                }
+
+                timer->timeRemaining -= deltaTime;
+
+                if (timer->timeRemaining <= 0) {
+                    timer->isActive = false;
+                    timer->timeRemaining = 0;
+                }
             }
         }
     }

@@ -11,7 +11,7 @@ int main(void) {
     Vector2 windowSize = {0, 0};
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT);
-    InitWindow(windowSize.x, windowSize.y, "My little plant");
+    InitWindow(windowSize.x, windowSize.y, "raylib_game td-1");
     SetExitKey(KEY_NULL);
 
     assetManager_loadAssets();
@@ -27,7 +27,9 @@ int main(void) {
 
         // Maximum 1/60th of a second (16.67ms) per frame for smooth movement
         if (deltaTime > 1.0f / MIN_FPS) {
-            TraceLog(LOG_WARNING, "Frame took %.2fms. Clamping to 16.67ms for smooth movement", deltaTime * 1000.0f);
+            TraceLog(LOG_WARNING,
+                "Frame took %.2fms. Clamping to 16.67ms for smooth movement",
+                deltaTime * 1000.0f);
             deltaTime = 1.0f / MIN_FPS;
         }
 
