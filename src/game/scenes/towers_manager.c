@@ -322,7 +322,6 @@ void updateBullets(float deltaTime) {
             towerBullets[bulletIndex].originTowerCoords.y);
 
         Vector2 targetPos = wave_mob_getPosition(towerBullets[bulletIndex].mobTargetIndex);
-        // towerBullets[i].originTowerCoords.y);
 
         TowerType towerType = towerBullets[bulletIndex].originTowerType;
         float bulletSpeed = towerTypeData.bulletSpeed[towerType];
@@ -332,9 +331,8 @@ void updateBullets(float deltaTime) {
         float distance = Vector2Distance(originPos, targetPos);
         float dt = (scaledBulletSpeed * deltaTime) / distance;
 
-        towerBullets[bulletIndex].travelProgress += dt;
         towerBullets[bulletIndex].travelProgress
-            = Clamp(towerBullets[bulletIndex].travelProgress, 0, 1);
+            = Clamp(dt + towerBullets[bulletIndex].travelProgress, 0, 1);
 
         towerBullets[bulletIndex].position
             = Vector2Lerp(originPos, targetPos, towerBullets[bulletIndex].travelProgress);

@@ -1,4 +1,5 @@
 #include "game.h"
+#include "../core/asset_manager.h"
 #include "../debug/debug_panel.h"
 #include "../input/input.h"
 #include "../input/key_map.h"
@@ -6,11 +7,13 @@
 #include "./scenes/scene.h"
 #include "gameplay.h"
 #include <raylib.h>
+#include <stdbool.h>
 
 #define GAME_VIEW_WIDTH 1920
 
 RenderTexture2D target;
 int previousScreenWidth;
+bool paused = false;
 
 void calculateGameView(Game *game) {
     game->scale = (float)GetScreenWidth() / GAME_VIEW_WIDTH;
@@ -33,6 +36,11 @@ void game_processInput(Game *game) {
 
     scene_handleInput();
 
+    // move to keymap
+    if (input.keyPressed == KEY_P) {
+        paused = !paused;
+    }
+
     Message cmd = keyMap_processInput();
     if (messages_dispatchMessage(cmd, game)) {
         return;
@@ -45,7 +53,9 @@ void game_update(Game *game, float deltaTime) {
         calculateGameView(game);
     }
 
-    scene_update(deltaTime);
+    if (!paused) {
+        scene_update(deltaTime);
+    }
 }
 
 void game_draw(Game *game) {
@@ -65,18 +75,26 @@ void game_draw(Game *game) {
 
     ClearBackground(BLACK);
 
-    Rectangle source = {
-        0.0f,
-        0.0f,
-        target.texture.width,
-        -target.texture.height,
-    };
-
+    Rectangle source = {0.0f, 0.0f, target.texture.width, -target.texture.height};
     Rectangle dest = {0, 0, GetScreenWidth(), GetScreenHeight()};
-
     Vector2 origin = {0, 0};
 
     DrawTexturePro(target.texture, source, dest, origin, 0.0f, WHITE);
+    DrawRectangleRec(dest, (Color){0, 0, 0, 100});
+
+    if (paused) {
+        // to some kind of text table?
+        const char *text = "Paused";
+        const int fontSize = uiFont.baseSize * 2;
+
+        Vector2 textMeasurements = MeasureTextEx(uiFont, text, fontSize, 0);
+        Vector2 textPos = {
+            (dest.width - textMeasurements.x) / 2,
+            (dest.height - textMeasurements.y) / 2,
+        };
+
+        DrawTextEx(uiFont, text, textPos, fontSize, 0, WHITE);
+    }
 
     EndDrawing();
 }

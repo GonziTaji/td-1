@@ -25,12 +25,15 @@ int main(void) {
     while (!WindowShouldClose()) {
         float deltaTime = GetFrameTime();
 
-        // Maximum 1/60th of a second (16.67ms) per frame for smooth movement
         if (deltaTime > 1.0f / MIN_FPS) {
+            float newDeltaTime = 1.0f / MIN_FPS;
+
             TraceLog(LOG_WARNING,
-                "Frame took %.2fms. Clamping to 16.67ms for smooth movement",
-                deltaTime * 1000.0f);
-            deltaTime = 1.0f / MIN_FPS;
+                "Frame took %.2fms. Clamping to %.2fms for smooth movement",
+                deltaTime * 1000.0f,
+                newDeltaTime * 1000.0f);
+
+            deltaTime = newDeltaTime;
         }
 
         game_processInput(&g);
