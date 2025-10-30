@@ -4,7 +4,7 @@
 #include "../input/input.h"
 #include "../input/key_map.h"
 #include "./constants.h"
-#include "./scenes/scene.h"
+#include "./scene/scene.h"
 #include "gameplay.h"
 #include <raylib.h>
 #include <stdbool.h>
@@ -80,9 +80,10 @@ void game_draw(Game *game) {
     Vector2 origin = {0, 0};
 
     DrawTexturePro(target.texture, source, dest, origin, 0.0f, WHITE);
-    DrawRectangleRec(dest, (Color){0, 0, 0, 100});
 
     if (paused) {
+        DrawRectangleRec(dest, (Color){0, 0, 0, 100});
+
         // to some kind of text table?
         const char *text = "Paused";
         const int fontSize = uiFont.baseSize * 2;

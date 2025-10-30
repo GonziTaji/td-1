@@ -12,7 +12,7 @@ extern Texture2D cursorTexture_planter;
 extern Texture2D cursorTexture_plant;
 extern Texture2D cursorTexture_feed;
 extern Texture2D cursorTexture_remove;
-extern Texture2D slab1Texture;
+extern Texture2D slabsTexture;
 extern Font uiFont;
 extern Font debugFont;
 

@@ -15,24 +15,28 @@ typedef enum {
 } DurationType;
 
 typedef enum {
-    MODIFIER_EFFECT_TYPE_SLOW,
-    MODIFIER_EFFECT_TYPE_DOT,
-} ModifierEffectType;
+    STATUS_EFFECT_TYPE_SLOW,
+    STATUS_EFFECT_TYPE_DOT,
+} StatusEffectType;
 
 typedef enum {
-    MODIFIER_VALUE_TYPE_FLAT,
-    MODIFIER_VALUE_TYPE_PERCENT,
-    MODIFIER_VALUE_TYPE_MULTIPLIER,
-} ModifierValueType;
+    STATUS_EFFECT_VALUE_TYPE_FLAT,
+    STATUS_EFFECT_VALUE_TYPE_PERCENT,
+    STATUS_EFFECT_VALUE_TYPE_MULTIPLIER,
+} StatusEffectValueType;
 
 typedef struct {
     int id;
-    ModifierEffectType type;
+    StatusEffectType type;
     DurationType durationType;
     float duration;
     float value;
-    ModifierValueType valueType;
-} StatModifier;
+    StatusEffectValueType valueType;
+} StatusEffect;
+
+typedef enum {
+    a_E_e,
+} a;
 
 typedef enum {
     MOB_TYPE_RED,

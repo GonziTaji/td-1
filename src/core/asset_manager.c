@@ -10,7 +10,7 @@ Texture2D cursorTexture_planter;
 Texture2D cursorTexture_plant;
 Texture2D cursorTexture_feed;
 Texture2D cursorTexture_remove;
-Texture2D slab1Texture;
+Texture2D slabsTexture;
 Font uiFont;
 Font debugFont;
 
@@ -24,7 +24,7 @@ void assetManager_loadAssets() {
     gardenTexture = LoadTexture("resources/assets/floor.png");
     SetTextureFilter(gardenTexture, TEXTURE_FILTER_BILINEAR);
 
-    slab1Texture = LoadTexture("resources/assets/slab1.png");
+    slabsTexture = LoadTexture("resources/assets/slabs.png");
 
     planterAtlas = LoadTexture("resources/assets/planters.png");
 
@@ -48,5 +48,5 @@ void assetManager_unloadAssets() {
     UnloadTexture(cursorTexture_plant);
     UnloadTexture(cursorTexture_feed);
     UnloadTexture(cursorTexture_remove);
-    UnloadTexture(slab1Texture);
+    UnloadTexture(slabsTexture);
 }

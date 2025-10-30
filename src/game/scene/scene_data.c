@@ -110,7 +110,7 @@ void scene_data_load(int sceneIndex) {
 
     char path[SCENE_DATA_MAX_FILE_PATH];
 
-    snprintf(path, sizeof(path), "%s/scene_%d.txt", SCENE_DATA_FILE_DIR, sceneIndex);
+    snprintf(path, sizeof(path), "%s/%d/scene.txt", SCENE_DATA_FILE_DIR, sceneIndex);
 
     printf("Loading scene data from \"%s\"\n", path);
 

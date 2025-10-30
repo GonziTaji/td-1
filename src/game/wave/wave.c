@@ -1,14 +1,15 @@
-#include "./wave_manager.h"
+#include "../wave/wave.h"
 #include "../../core/asset_manager.h"
 #include "../../utils/grid.h"
 #include "../../utils/utils.h"
 #include "../constants.h"
 #include "../gameplay.h"
-#include "./view_mamanger.h"
-#include "scene_data.h"
+#include "../scene/scene_data.h"
+#include "../scene/view_mamanger.h"
 #include <assert.h>
 #include <raylib.h>
 #include <raymath.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -20,7 +21,7 @@ typedef enum {
 } MobStatus;
 
 typedef struct {
-    const StatModifier *modifier;
+    StatusEffect modifier;
     float timeRemaining;
     bool isActive;
 } ModifierTimer;
@@ -49,7 +50,7 @@ ModifierTimer mobsModifiersTimers[SCENE_DATA_MAX_MOBS][SCENE_DATA_MAX_MOB_STAT_M
 
 int totalMobsCount = 0;
 
-float spawnCooldownSeconds = 0.4f;
+float spawnCooldownSeconds = 0.6f;
 
 typedef enum {
     WAVE_STATUS_NOT_STARTED,
@@ -70,8 +71,8 @@ void drawMobs() {
             continue;
         }
 
-        int mobWidth = 10;
-        int mobHeight = 10;
+        int mobWidth = 30;
+        int mobHeight = 30;
 
         Vector2 drawOrigin
             = Vector2Subtract(mobsPosition[i], (Vector2){mobWidth / 2.0f, mobHeight / 2.0f});
@@ -110,17 +111,17 @@ void drawMobs() {
     }
 }
 
-void drawPath() {
-    for (int indexEnd = 1; indexEnd < SCENE_DATA->pathWaypointsCount; indexEnd++) {
-        V2i waypointStart = SCENE_DATA->pathWaypoints[indexEnd - 1];
-        V2i waypointEnd = SCENE_DATA->pathWaypoints[indexEnd];
-
-        Vector2 start = grid_getTileCenter(SCENE_TRANSFORM, waypointStart.x, waypointStart.y);
-        Vector2 end = grid_getTileCenter(SCENE_TRANSFORM, waypointEnd.x, waypointEnd.y);
-
-        DrawLineEx(start, end, TILE_WIDTH, (Color){234, 227, 173, 100});
-    }
-}
+// void drawPath() {
+//     for (int indexEnd = 1; indexEnd < SCENE_DATA->pathWaypointsCount; indexEnd++) {
+//         V2i waypointStart = SCENE_DATA->pathWaypoints[indexEnd - 1];
+//         V2i waypointEnd = SCENE_DATA->pathWaypoints[indexEnd];
+//
+//         Vector2 start = grid_getTileCenter(SCENE_TRANSFORM, waypointStart.x, waypointStart.y);
+//         Vector2 end = grid_getTileCenter(SCENE_TRANSFORM, waypointEnd.x, waypointEnd.y);
+//
+//         DrawLineEx(start, end, TILE_WIDTH, (Color){234, 227, 173, 100});
+//     }
+// }
 
 float getPathTime(int waypointIndex, float movementSpeed) {
     if (waypointIndex == 0)
@@ -137,13 +138,13 @@ float getPathTime(int waypointIndex, float movementSpeed) {
     return pathTime;
 }
 
-float applyModifiers(int mobIndex, float value, ModifierEffectType effectType) {
+float applyModifiers(int mobIndex, float value, StatusEffectType effectType) {
     float newValue = value;
 
     ModifierTimer *timers = mobsModifiersTimers[mobIndex];
 
     for (int i = 0; i < SCENE_DATA_MAX_MOB_STAT_MODS; i++) {
-        const StatModifier *modifier = timers[i].modifier;
+        const StatusEffect *modifier = &timers[i].modifier;
 
         if (modifier == NULL || !timers[i].isActive) {
             continue;
@@ -154,13 +155,13 @@ float applyModifiers(int mobIndex, float value, ModifierEffectType effectType) {
         }
 
         switch (modifier->valueType) {
-        case MODIFIER_VALUE_TYPE_FLAT:
+        case STATUS_EFFECT_VALUE_TYPE_FLAT:
             newValue += modifier->value;
             break;
-        case MODIFIER_VALUE_TYPE_PERCENT:
+        case STATUS_EFFECT_VALUE_TYPE_PERCENT:
             newValue += newValue * (modifier->value / 100);
             break;
-        case MODIFIER_VALUE_TYPE_MULTIPLIER:
+        case STATUS_EFFECT_VALUE_TYPE_MULTIPLIER:
             newValue *= modifier->value;
             break;
         }
@@ -209,27 +210,26 @@ void wave_mob_removeModifier(int mobIndex, int modifierId) {
     ModifierTimer *timers = mobsModifiersTimers[mobIndex];
 
     for (int i = 0; i < SCENE_DATA_MAX_MOB_STAT_MODS; i++) {
-        if (timers[i].modifier == NULL) {
+        if (timers[i].timeRemaining <= 0 || !timers[i].isActive) {
             continue;
         }
 
-        if (timers[i].modifier->id == modifierId) {
-            timers[i].modifier = NULL;
+        if (timers[i].modifier.id == modifierId) {
             timers[i].isActive = false;
             return;
         }
     }
 }
 
-void wave_mob_addModifier(int mobIndex, const StatModifier *modifierData) {
+void wave_mob_addModifier(int mobIndex, StatusEffect modifierData) {
     int availableSlotIndex = -1;
 
     ModifierTimer *timers = mobsModifiersTimers[mobIndex];
 
     for (int i = 0; i < SCENE_DATA_MAX_MOB_STAT_MODS; i++) {
-        if (timers[i].isActive && timers[i].modifier->id == modifierData->id) {
+        if (timers[i].isActive && timers[i].modifier.id == modifierData.id) {
             // refresh timer and exit
-            timers[i].timeRemaining = modifierData->duration;
+            timers[i].timeRemaining = modifierData.duration;
             return;
         }
 
@@ -246,7 +246,7 @@ void wave_mob_addModifier(int mobIndex, const StatModifier *modifierData) {
     if (availableSlotIndex != -1) {
         timers[availableSlotIndex].isActive = true;
         timers[availableSlotIndex].modifier = modifierData;
-        timers[availableSlotIndex].timeRemaining = modifierData->duration;
+        timers[availableSlotIndex].timeRemaining = modifierData.duration;
     }
 }
 
@@ -300,11 +300,29 @@ int wave_getMobCount() {
 
 bool wave_isPath(int tileX, int tileY) {
     for (int indexEnd = 1; indexEnd < SCENE_DATA->pathWaypointsCount; indexEnd++) {
-        V2i waypointStart = SCENE_DATA->pathWaypoints[indexEnd - 1];
-        V2i waypointEnd = SCENE_DATA->pathWaypoints[indexEnd];
+        V2i path_start = SCENE_DATA->pathWaypoints[indexEnd - 1];
+        V2i path_end = SCENE_DATA->pathWaypoints[indexEnd];
 
-        if (waypointStart.x <= tileX && tileX <= waypointEnd.x && waypointStart.y <= tileY
-            && tileY <= waypointEnd.y) {
+        bool x_in_bounds = false;
+        bool y_in_bounds = false;
+
+        if (path_start.x == path_end.x && path_start.x == tileX) {
+            x_in_bounds = true;
+        } else if (path_start.x < path_end.x && path_start.x <= tileX && tileX <= path_end.x) {
+            x_in_bounds = true;
+        } else if (path_start.x > path_end.x && path_start.x >= tileX && tileX >= path_end.x) {
+            x_in_bounds = true;
+        }
+
+        if (path_start.y == path_end.y && path_start.y == tileY) {
+            y_in_bounds = true;
+        } else if (path_start.y < path_end.y && path_start.y <= tileY && tileY <= path_end.y) {
+            y_in_bounds = true;
+        } else if (path_start.y > path_end.y && path_start.y >= tileY && tileY >= path_end.y) {
+            y_in_bounds = true;
+        }
+
+        if (x_in_bounds && y_in_bounds) {
             return true;
         }
     }
@@ -348,7 +366,6 @@ void wave_initData() {
 
             // modifiers
             for (int j = 0; j < SCENE_DATA_MAX_MOB_STAT_MODS; j++) {
-                mobsModifiersTimers[i][j].modifier = NULL;
                 mobsModifiersTimers[i][j].timeRemaining = 0;
                 mobsModifiersTimers[i][j].isActive = false;
             }
@@ -435,7 +452,7 @@ void wave_update(float deltaTime) {
 
             float pathTime = getPathTime(waypointIndex, mobsMovementSpeed[i]);
 
-            mobsTimeInCurrentPath[i] += applyModifiers(i, deltaTime, MODIFIER_EFFECT_TYPE_SLOW);
+            mobsTimeInCurrentPath[i] += applyModifiers(i, deltaTime, STATUS_EFFECT_TYPE_SLOW);
             mobsTimeInCurrentPath[i] = Clamp(mobsTimeInCurrentPath[i], 0, pathTime);
 
             float t = mobsTimeInCurrentPath[i] / pathTime;
@@ -470,7 +487,7 @@ void wave_update(float deltaTime) {
                     continue;
                 }
 
-                if (timer->modifier->durationType == DURATION_TYPE_PERMANENT) {
+                if (timer->modifier.durationType == DURATION_TYPE_PERMANENT) {
                     continue;
                 }
 
@@ -487,6 +504,6 @@ void wave_update(float deltaTime) {
 
 void wave_draw() {
     // for debug. Eventually, path will have a different sprite
-    drawPath();
+    // drawPath();
     drawMobs();
 }

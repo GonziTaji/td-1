@@ -1,11 +1,15 @@
 #include "../game/game.h"
 #include "asset_manager.h"
 #include "raylib.h"
+#include <stdlib.h>
+#include <time.h>
 
 #define TARGET_FPS 144
 #define MIN_FPS 30
 
 int main(void) {
+    srand(time(NULL));
+
     SetTargetFPS(TARGET_FPS);
 
     Vector2 windowSize = {0, 0};
