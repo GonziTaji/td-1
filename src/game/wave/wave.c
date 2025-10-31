@@ -303,26 +303,15 @@ bool wave_isPath(int tileX, int tileY) {
         V2i path_start = SCENE_DATA->pathWaypoints[indexEnd - 1];
         V2i path_end = SCENE_DATA->pathWaypoints[indexEnd];
 
-        bool x_in_bounds = false;
-        bool y_in_bounds = false;
-
-        if (path_start.x == path_end.x && path_start.x == tileX) {
-            x_in_bounds = true;
-        } else if (path_start.x < path_end.x && path_start.x <= tileX && tileX <= path_end.x) {
-            x_in_bounds = true;
-        } else if (path_start.x > path_end.x && path_start.x >= tileX && tileX >= path_end.x) {
-            x_in_bounds = true;
+        // Horizontal segment
+        if (path_start.y == path_end.y && tileY == path_start.y
+            && tileX >= fmin(path_start.x, path_end.x) && tileX <= fmax(path_start.x, path_end.x)) {
+            return true;
         }
 
-        if (path_start.y == path_end.y && path_start.y == tileY) {
-            y_in_bounds = true;
-        } else if (path_start.y < path_end.y && path_start.y <= tileY && tileY <= path_end.y) {
-            y_in_bounds = true;
-        } else if (path_start.y > path_end.y && path_start.y >= tileY && tileY >= path_end.y) {
-            y_in_bounds = true;
-        }
-
-        if (x_in_bounds && y_in_bounds) {
+        // Vertical segment
+        if (path_start.x == path_end.x && tileX == path_start.x
+            && tileY >= fmin(path_start.y, path_end.y) && tileY <= fmax(path_start.y, path_end.y)) {
             return true;
         }
     }
