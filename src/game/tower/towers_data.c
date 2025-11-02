@@ -1,0 +1,100 @@
+#include "towers_data.h"
+#include "cJSON.h"
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define FILE_PATH "data/towers.json"
+
+TowerRegistry tower_registry = {0};
+
+static Color parseColor(cJSON *colorArray) {
+    if (!cJSON_IsArray(colorArray) || cJSON_GetArraySize(colorArray) < 4)
+        return (Color){255, 255, 255, 255};
+
+    return (Color){
+        .r = cJSON_GetArrayItem(colorArray, 0)->valueint,
+        .g = cJSON_GetArrayItem(colorArray, 1)->valueint,
+        .b = cJSON_GetArrayItem(colorArray, 2)->valueint,
+        .a = cJSON_GetArrayItem(colorArray, 3)->valueint,
+    };
+}
+
+void unload() {
+    if (tower_registry.data) {
+        free(tower_registry.data);
+        tower_registry.data = NULL;
+        tower_registry.count = 0;
+    }
+}
+
+int tower_data_getTowerTypeCount() {
+    return tower_registry.count;
+}
+
+TowerBaseData *tower_data_getDataByIndex(int index) {
+    assert(index < tower_registry.count && index >= 0 && "Invalid index");
+
+    return &tower_registry.data[index];
+}
+
+bool tower_data_load() {
+    unload();
+
+    FILE *file = fopen(FILE_PATH, "r");
+    if (!file) {
+        fprintf(stderr, "Could not open %s\n", FILE_PATH);
+        return false;
+    }
+
+    fseek(file, 0, SEEK_END);
+    long length = ftell(file);
+    rewind(file);
+
+    char *data = malloc(length + 1);
+    fread(data, 1, length, file);
+    data[length] = '\0';
+    fclose(file);
+
+    cJSON *root = cJSON_Parse(data);
+    if (!root || !cJSON_IsArray(root)) {
+        fprintf(stderr, "JSON data must be an array. File: %s\n", FILE_PATH);
+        free(data);
+        return false;
+    }
+
+    int count = cJSON_GetArraySize(root);
+    float size = sizeof(TowerBaseData) * count;
+
+    tower_registry.count = count;
+    tower_registry.data = malloc(size);
+
+    for (int i = 0; i < count; i++) {
+        cJSON *towerJSON = cJSON_GetArrayItem(root, i);
+        TowerBaseData *tower = &tower_registry.data[i];
+
+        cJSON *name = cJSON_GetObjectItem(towerJSON, "name");
+        strncpy(tower->name, name ? name->valuestring : "Unnamed", sizeof(tower->name));
+
+        cJSON *attrs = cJSON_GetObjectItem(towerJSON, "attributes");
+        TowerAttributes *dest = &tower->attributes;
+
+        if (attrs) {
+            dest->damage = cJSON_GetObjectItem(attrs, "damage")->valuedouble;
+            dest->range = cJSON_GetObjectItem(attrs, "range")->valuedouble;
+            dest->rate_of_fire = cJSON_GetObjectItem(attrs, "rate_of_fire")->valuedouble;
+            dest->bullet_speed = cJSON_GetObjectItem(attrs, "bullet_speed")->valuedouble;
+            dest->multishot = cJSON_GetObjectItem(attrs, "multishot")->valuedouble;
+            dest->crit_chance_percent = cJSON_GetObjectItem(attrs, "crit_chance_percent")->valuedouble;
+        }
+
+        tower->tower_color = parseColor(cJSON_GetObjectItem(towerJSON, "tower_color"));
+        tower->bullet_color = parseColor(cJSON_GetObjectItem(towerJSON, "bullet_color"));
+        tower->bullet_width = cJSON_GetObjectItem(towerJSON, "bullet_width")->valueint;
+    }
+
+    cJSON_Delete(root);
+    free(data);
+    return true;
+}

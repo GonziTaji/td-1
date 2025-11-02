@@ -5,12 +5,13 @@
    "gcc",
    "-Wall",
    "-Iinclude",
+   "-Ithird_party",
    "-g",
    "-Werror",
    "-c",
    "src/utils/utils.c",
    "-o",
-   "build/utils/utils.o"
+   "build/src/utils/utils.o"
   ],
   "file": "src/utils/utils.c"
  },
@@ -20,12 +21,13 @@
    "gcc",
    "-Wall",
    "-Iinclude",
+   "-Ithird_party",
    "-g",
    "-Werror",
    "-c",
    "src/utils/grid.c",
    "-o",
-   "build/utils/grid.o"
+   "build/src/utils/grid.o"
   ],
   "file": "src/utils/grid.c"
  },
@@ -35,12 +37,13 @@
    "gcc",
    "-Wall",
    "-Iinclude",
+   "-Ithird_party",
    "-g",
    "-Werror",
    "-c",
    "src/messages/messages.c",
    "-o",
-   "build/messages/messages.o"
+   "build/src/messages/messages.o"
   ],
   "file": "src/messages/messages.c"
  },
@@ -50,12 +53,13 @@
    "gcc",
    "-Wall",
    "-Iinclude",
+   "-Ithird_party",
    "-g",
    "-Werror",
    "-c",
    "src/input/key_map.c",
    "-o",
-   "build/input/key_map.o"
+   "build/src/input/key_map.o"
   ],
   "file": "src/input/key_map.c"
  },
@@ -65,12 +69,13 @@
    "gcc",
    "-Wall",
    "-Iinclude",
+   "-Ithird_party",
    "-g",
    "-Werror",
    "-c",
    "src/input/input.c",
    "-o",
-   "build/input/input.o"
+   "build/src/input/input.o"
   ],
   "file": "src/input/input.c"
  },
@@ -80,12 +85,13 @@
    "gcc",
    "-Wall",
    "-Iinclude",
+   "-Ithird_party",
    "-g",
    "-Werror",
    "-c",
    "src/core/asset_manager.c",
    "-o",
-   "build/core/asset_manager.o"
+   "build/src/core/asset_manager.o"
   ],
   "file": "src/core/asset_manager.c"
  },
@@ -95,12 +101,13 @@
    "gcc",
    "-Wall",
    "-Iinclude",
+   "-Ithird_party",
    "-g",
    "-Werror",
    "-c",
    "src/core/main.c",
    "-o",
-   "build/core/main.o"
+   "build/src/core/main.o"
   ],
   "file": "src/core/main.c"
  },
@@ -110,12 +117,13 @@
    "gcc",
    "-Wall",
    "-Iinclude",
+   "-Ithird_party",
    "-g",
    "-Werror",
    "-c",
    "src/ui/button.c",
    "-o",
-   "build/ui/button.o"
+   "build/src/ui/button.o"
   ],
   "file": "src/ui/button.c"
  },
@@ -125,12 +133,13 @@
    "gcc",
    "-Wall",
    "-Iinclude",
+   "-Ithird_party",
    "-g",
    "-Werror",
    "-c",
    "src/ui/ui_button_grid.c",
    "-o",
-   "build/ui/ui_button_grid.o"
+   "build/src/ui/ui_button_grid.o"
   ],
   "file": "src/ui/ui_button_grid.c"
  },
@@ -140,12 +149,13 @@
    "gcc",
    "-Wall",
    "-Iinclude",
+   "-Ithird_party",
    "-g",
    "-Werror",
    "-c",
    "src/ui/ui_text_box.c",
    "-o",
-   "build/ui/ui_text_box.o"
+   "build/src/ui/ui_text_box.o"
   ],
   "file": "src/ui/ui_text_box.c"
  },
@@ -155,12 +165,77 @@
    "gcc",
    "-Wall",
    "-Iinclude",
+   "-Ithird_party",
+   "-g",
+   "-Werror",
+   "-c",
+   "src/game/combat/status_effect.c",
+   "-o",
+   "build/src/game/combat/status_effect.o"
+  ],
+  "file": "src/game/combat/status_effect.c"
+ },
+ {
+  "directory": "/home/yogusita/proyectos/td-1",
+  "arguments": [
+   "gcc",
+   "-Wall",
+   "-Iinclude",
+   "-Ithird_party",
+   "-g",
+   "-Werror",
+   "-c",
+   "src/game/combat/modifiers_data.c",
+   "-o",
+   "build/src/game/combat/modifiers_data.o"
+  ],
+  "file": "src/game/combat/modifiers_data.c"
+ },
+ {
+  "directory": "/home/yogusita/proyectos/td-1",
+  "arguments": [
+   "gcc",
+   "-Wall",
+   "-Iinclude",
+   "-Ithird_party",
+   "-g",
+   "-Werror",
+   "-c",
+   "src/game/combat/modifier.c",
+   "-o",
+   "build/src/game/combat/modifier.o"
+  ],
+  "file": "src/game/combat/modifier.c"
+ },
+ {
+  "directory": "/home/yogusita/proyectos/td-1",
+  "arguments": [
+   "gcc",
+   "-Wall",
+   "-Iinclude",
+   "-Ithird_party",
+   "-g",
+   "-Werror",
+   "-c",
+   "src/game/combat/status_effects_data.c",
+   "-o",
+   "build/src/game/combat/status_effects_data.o"
+  ],
+  "file": "src/game/combat/status_effects_data.c"
+ },
+ {
+  "directory": "/home/yogusita/proyectos/td-1",
+  "arguments": [
+   "gcc",
+   "-Wall",
+   "-Iinclude",
+   "-Ithird_party",
    "-g",
    "-Werror",
    "-c",
    "src/game/scene/scene.c",
    "-o",
-   "build/game/scene/scene.o"
+   "build/src/game/scene/scene.o"
   ],
   "file": "src/game/scene/scene.c"
  },
@@ -170,12 +245,13 @@
    "gcc",
    "-Wall",
    "-Iinclude",
+   "-Ithird_party",
    "-g",
    "-Werror",
    "-c",
    "src/game/scene/view_mamanger.c",
    "-o",
-   "build/game/scene/view_mamanger.o"
+   "build/src/game/scene/view_mamanger.o"
   ],
   "file": "src/game/scene/view_mamanger.c"
  },
@@ -185,12 +261,13 @@
    "gcc",
    "-Wall",
    "-Iinclude",
+   "-Ithird_party",
    "-g",
    "-Werror",
    "-c",
    "src/game/scene/scene_data.c",
    "-o",
-   "build/game/scene/scene_data.o"
+   "build/src/game/scene/scene_data.o"
   ],
   "file": "src/game/scene/scene_data.c"
  },
@@ -200,12 +277,13 @@
    "gcc",
    "-Wall",
    "-Iinclude",
+   "-Ithird_party",
    "-g",
    "-Werror",
    "-c",
    "src/game/gameplay.c",
    "-o",
-   "build/game/gameplay.o"
+   "build/src/game/gameplay.o"
   ],
   "file": "src/game/gameplay.c"
  },
@@ -215,12 +293,13 @@
    "gcc",
    "-Wall",
    "-Iinclude",
+   "-Ithird_party",
    "-g",
    "-Werror",
    "-c",
    "src/game/wave/wave.c",
    "-o",
-   "build/game/wave/wave.o"
+   "build/src/game/wave/wave.o"
   ],
   "file": "src/game/wave/wave.c"
  },
@@ -230,12 +309,13 @@
    "gcc",
    "-Wall",
    "-Iinclude",
+   "-Ithird_party",
    "-g",
    "-Werror",
    "-c",
    "src/game/game.c",
    "-o",
-   "build/game/game.o"
+   "build/src/game/game.o"
   ],
   "file": "src/game/game.c"
  },
@@ -245,14 +325,15 @@
    "gcc",
    "-Wall",
    "-Iinclude",
+   "-Ithird_party",
    "-g",
    "-Werror",
    "-c",
-   "src/game/tower/tower_data.c",
+   "src/game/tower/towers_data.c",
    "-o",
-   "build/game/tower/tower_data.o"
+   "build/src/game/tower/towers_data.o"
   ],
-  "file": "src/game/tower/tower_data.c"
+  "file": "src/game/tower/towers_data.c"
  },
  {
   "directory": "/home/yogusita/proyectos/td-1",
@@ -260,12 +341,13 @@
    "gcc",
    "-Wall",
    "-Iinclude",
+   "-Ithird_party",
    "-g",
    "-Werror",
    "-c",
    "src/game/tower/tower.c",
    "-o",
-   "build/game/tower/tower.o"
+   "build/src/game/tower/tower.o"
   ],
   "file": "src/game/tower/tower.c"
  },
@@ -275,13 +357,30 @@
    "gcc",
    "-Wall",
    "-Iinclude",
+   "-Ithird_party",
    "-g",
    "-Werror",
    "-c",
    "src/debug/debug_panel.c",
    "-o",
-   "build/debug/debug_panel.o"
+   "build/src/debug/debug_panel.o"
   ],
   "file": "src/debug/debug_panel.c"
+ },
+ {
+  "directory": "/home/yogusita/proyectos/td-1",
+  "arguments": [
+   "gcc",
+   "-Wall",
+   "-Iinclude",
+   "-Ithird_party",
+   "-g",
+   "-Werror",
+   "-c",
+   "third_party/cJSON.c",
+   "-o",
+   "build/third_party/cJSON.o"
+  ],
+  "file": "third_party/cJSON.c"
  }
 ]

@@ -5,6 +5,16 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) >= (b) ? (a) : (b))
 
+typedef enum {
+    DURATION_TYPE_PERMANENT,
+    DURATION_TYPE_TEMPORARY,
+} DurationType;
+
+typedef enum {
+    MOD_VALUE_TYPE_FLAT,
+    MOD_VALUE_TYPE_MULTIPLIER,
+} ModValueType;
+
 typedef struct {
     float scale;
     Vector2 translation;
@@ -25,5 +35,7 @@ typedef struct {
 // math
 float utils_clampf(float min, float max, float value);
 
-bool utils_checkCollisionPointEllipse(
-    Vector2 point, Vector2 ellipseCenter, float ellipseRadiusX, float ellipseRadiusY);
+bool utils_checkCollisionPointEllipse(Vector2 point,
+    Vector2 ellipseCenter,
+    float ellipseRadiusX,
+    float ellipseRadiusY);

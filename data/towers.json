@@ -1,0 +1,32 @@
+[
+    {
+        "name": "White Tower",
+        "type": "TOWER_TYPE_WHITE",
+        "attributes": {
+            "damage": 5,
+            "range": 280,
+            "rate_of_fire": 4,
+            "bullet_speed": 700,
+            "multishot": 0,
+            "crit_chance_percent": 0
+        },
+        "tower_color": [255, 255, 255, 255],
+        "bullet_color": [255, 255, 0, 255],
+        "bullet_width": 10
+    },
+    {
+        "name": "Blue Tower",
+        "type": "TOWER_TYPE_BLUE",
+        "attributes": {
+            "damage": 20,
+            "range": 240,
+            "rate_of_fire": 1.2,
+            "bullet_speed": 500,
+            "multishot": 0,
+            "crit_chance_percent": 0
+        },
+        "tower_color": [0, 121, 241, 255],
+        "bullet_color": [102, 191, 255, 255],
+        "bullet_width": 12
+    }
+]

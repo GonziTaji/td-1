@@ -5,6 +5,7 @@
 #include "../constants.h"
 #include "../gameplay.h"
 #include "../tower/tower.h"
+#include "../tower/towers_data.h"
 #include "../wave/wave.h"
 #include "./scene_data.h"
 #include "./view_mamanger.h"
@@ -30,6 +31,7 @@ typedef enum {
 } TileType;
 
 void scene_init(int sceneIndex) {
+    tower_data_load();
     scene_data_load(sceneIndex);
 
     towers_clear();
@@ -37,13 +39,10 @@ void scene_init(int sceneIndex) {
 }
 
 void scene_handleInput() {
-    V2i hoveredCoords
-        = grid_worldPointToCoords(SCENE_TRANSFORM, input.worldMousePos.x, input.worldMousePos.y);
+    V2i hoveredCoords = grid_worldPointToCoords(SCENE_TRANSFORM, input.worldMousePos.x, input.worldMousePos.y);
 
-    hoveredTileIndex = grid_getTileIndexFromCoords(SCENE_DATA->cols,
-        SCENE_DATA->rows,
-        hoveredCoords.x,
-        hoveredCoords.y);
+    hoveredTileIndex
+        = grid_getTileIndexFromCoords(SCENE_DATA->cols, SCENE_DATA->rows, hoveredCoords.x, hoveredCoords.y);
 
     if (input.keyPressed == KEY_SPACE) {
         wave_startNext();

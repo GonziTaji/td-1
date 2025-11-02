@@ -1,0 +1,11 @@
+[{
+    "name": "Base Tower",
+    "rate_of_fire" : 4,
+    "shooting_range" : 280,
+    "damage" : 5,
+    "bullet_speed" : 700,
+    "tower_color" : "WHITE",
+    "bullet_color" : "YELLOW",
+    "bullet_width" : 10
+    "modifiers": []
+}]

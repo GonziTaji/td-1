@@ -1,0 +1,12 @@
+[{
+    "name": "Basi AOE",
+    "type": "BULLET_MOD",
+    float aoe_falloff_multiplier;
+    int aoe_range;
+    float bounce_multiplier;
+    int max_bounces;
+    int bounce_prev_mob_index;
+    int bounce_range;
+    int bounce_count;
+}, {
+}]

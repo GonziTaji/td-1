@@ -21,10 +21,10 @@ typedef enum {
 } MobStatus;
 
 typedef struct {
-    StatusEffect modifier;
-    float timeRemaining;
-    bool isActive;
-} ModifierTimer;
+    StatusEffect effect;
+    float time_remaining;
+    bool is_active;
+} StatusEffectTimer;
 
 struct {
     int maxHealth;
@@ -46,7 +46,7 @@ int mobsTargetWaypointIndex[SCENE_DATA_MAX_MOBS];
 float mobsTimeInCurrentPath[SCENE_DATA_MAX_MOBS];
 // Tiles that it crosses in one second
 float mobsMovementSpeed[SCENE_DATA_MAX_MOBS];
-ModifierTimer mobsModifiersTimers[SCENE_DATA_MAX_MOBS][SCENE_DATA_MAX_MOB_STAT_MODS];
+StatusEffectTimer mobsModifiersTimers[SCENE_DATA_MAX_MOBS][SCENE_DATA_MAX_MOB_STAT_MODS];
 
 int totalMobsCount = 0;
 
@@ -74,8 +74,7 @@ void drawMobs() {
         int mobWidth = 30;
         int mobHeight = 30;
 
-        Vector2 drawOrigin
-            = Vector2Subtract(mobsPosition[i], (Vector2){mobWidth / 2.0f, mobHeight / 2.0f});
+        Vector2 drawOrigin = Vector2Subtract(mobsPosition[i], (Vector2){mobWidth / 2.0f, mobHeight / 2.0f});
 
         Rectangle mobRec = {
             drawOrigin.x,
@@ -138,31 +137,28 @@ float getPathTime(int waypointIndex, float movementSpeed) {
     return pathTime;
 }
 
-float applyModifiers(int mobIndex, float value, StatusEffectType effectType) {
+float applyEffectsToValue(int mobIndex, float value, StatusEffectType effectType) {
     float newValue = value;
 
-    ModifierTimer *timers = mobsModifiersTimers[mobIndex];
+    StatusEffectTimer *timers = mobsModifiersTimers[mobIndex];
 
     for (int i = 0; i < SCENE_DATA_MAX_MOB_STAT_MODS; i++) {
-        const StatusEffect *modifier = &timers[i].modifier;
+        const StatusEffect *effect = &timers[i].effect;
 
-        if (modifier == NULL || !timers[i].isActive) {
+        if (effect == NULL || !timers[i].is_active) {
             continue;
         }
 
-        if (modifier->type != effectType) {
+        if (effect->type != effectType) {
             continue;
         }
 
-        switch (modifier->valueType) {
-        case STATUS_EFFECT_VALUE_TYPE_FLAT:
-            newValue += modifier->value;
+        switch (effect->value_type) {
+        case MOD_VALUE_TYPE_FLAT:
+            newValue += effect->value;
             break;
-        case STATUS_EFFECT_VALUE_TYPE_PERCENT:
-            newValue += newValue * (modifier->value / 100);
-            break;
-        case STATUS_EFFECT_VALUE_TYPE_MULTIPLIER:
-            newValue *= modifier->value;
+        case MOD_VALUE_TYPE_MULTIPLIER:
+            newValue *= effect->value;
             break;
         }
     }
@@ -170,70 +166,38 @@ float applyModifiers(int mobIndex, float value, StatusEffectType effectType) {
     return newValue;
 }
 
-// float getModifiedMovementSpeed(int mobIndex) {
-//     float movementSpeed = mobsMovementSpeed[mobIndex];
-//
-//     ModifierTimer *timers = mobsModifiersTimers[mobIndex];
-//
-//     for (int i = 0; i < SCENE_DATA_MAX_MOB_STAT_MODS; i++) {
-//         const StatModifier *modifier = timers[i].modifier;
-//
-//         if (modifier == NULL || !timers[i].isActive) {
-//             continue;
-//         }
-//
-//         if (modifier->type != MODIFIER_EFFECT_TYPE_SLOW) {
-//             continue;
-//         }
-//
-//         switch (modifier->valueType) {
-//         case MODIFIER_VALUE_TYPE_FLAT:
-//             movementSpeed += modifier->value;
-//             break;
-//         case MODIFIER_VALUE_TYPE_PERCENT:
-//             movementSpeed += movementSpeed * (modifier->value / 100);
-//             break;
-//         case MODIFIER_VALUE_TYPE_MULTIPLIER:
-//             movementSpeed *= modifier->value;
-//             break;
-//         }
-//     }
-//
-//     return movementSpeed;
-// }
-
 // Public functions
 
 // Mob functions
 
 void wave_mob_removeModifier(int mobIndex, int modifierId) {
-    ModifierTimer *timers = mobsModifiersTimers[mobIndex];
+    StatusEffectTimer *timers = mobsModifiersTimers[mobIndex];
 
     for (int i = 0; i < SCENE_DATA_MAX_MOB_STAT_MODS; i++) {
-        if (timers[i].timeRemaining <= 0 || !timers[i].isActive) {
+        if (timers[i].time_remaining <= 0 || !timers[i].is_active) {
             continue;
         }
 
-        if (timers[i].modifier.id == modifierId) {
-            timers[i].isActive = false;
+        if (timers[i].effect.id == modifierId) {
+            timers[i].is_active = false;
             return;
         }
     }
 }
 
-void wave_mob_addModifier(int mobIndex, StatusEffect modifierData) {
+void wave_mob_addStatusEffect(int mob_index, StatusEffect modifier_data) {
     int availableSlotIndex = -1;
 
-    ModifierTimer *timers = mobsModifiersTimers[mobIndex];
+    StatusEffectTimer *timers = mobsModifiersTimers[mob_index];
 
     for (int i = 0; i < SCENE_DATA_MAX_MOB_STAT_MODS; i++) {
-        if (timers[i].isActive && timers[i].modifier.id == modifierData.id) {
+        if (timers[i].is_active && timers[i].effect.id == modifier_data.id) {
             // refresh timer and exit
-            timers[i].timeRemaining = modifierData.duration;
+            timers[i].time_remaining = modifier_data.duration;
             return;
         }
 
-        if (timers[i].isActive) {
+        if (timers[i].is_active) {
             continue;
         }
 
@@ -244,9 +208,9 @@ void wave_mob_addModifier(int mobIndex, StatusEffect modifierData) {
     }
 
     if (availableSlotIndex != -1) {
-        timers[availableSlotIndex].isActive = true;
-        timers[availableSlotIndex].modifier = modifierData;
-        timers[availableSlotIndex].timeRemaining = modifierData.duration;
+        timers[availableSlotIndex].is_active = true;
+        timers[availableSlotIndex].effect = modifier_data;
+        timers[availableSlotIndex].time_remaining = modifier_data.duration;
     }
 }
 
@@ -304,14 +268,14 @@ bool wave_isPath(int tileX, int tileY) {
         V2i path_end = SCENE_DATA->pathWaypoints[indexEnd];
 
         // Horizontal segment
-        if (path_start.y == path_end.y && tileY == path_start.y
-            && tileX >= fmin(path_start.x, path_end.x) && tileX <= fmax(path_start.x, path_end.x)) {
+        if (path_start.y == path_end.y && tileY == path_start.y && tileX >= fmin(path_start.x, path_end.x)
+            && tileX <= fmax(path_start.x, path_end.x)) {
             return true;
         }
 
         // Vertical segment
-        if (path_start.x == path_end.x && tileX == path_start.x
-            && tileY >= fmin(path_start.y, path_end.y) && tileY <= fmax(path_start.y, path_end.y)) {
+        if (path_start.x == path_end.x && tileX == path_start.x && tileY >= fmin(path_start.y, path_end.y)
+            && tileY <= fmax(path_start.y, path_end.y)) {
             return true;
         }
     }
@@ -355,8 +319,8 @@ void wave_initData() {
 
             // modifiers
             for (int j = 0; j < SCENE_DATA_MAX_MOB_STAT_MODS; j++) {
-                mobsModifiersTimers[i][j].timeRemaining = 0;
-                mobsModifiersTimers[i][j].isActive = false;
+                mobsModifiersTimers[i][j].time_remaining = 0;
+                mobsModifiersTimers[i][j].is_active = false;
             }
         }
     }
@@ -432,16 +396,14 @@ void wave_update(float deltaTime) {
         if (mobsStatus[i] == MOB_STATUS_ALIVE) {
             int waypointIndex = mobsTargetWaypointIndex[i];
             V2i waypointCoords = SCENE_DATA->pathWaypoints[waypointIndex];
-            Vector2 waypointPos
-                = grid_getTileCenter(SCENE_TRANSFORM, waypointCoords.x, waypointCoords.y);
+            Vector2 waypointPos = grid_getTileCenter(SCENE_TRANSFORM, waypointCoords.x, waypointCoords.y);
 
             V2i prevWaypointCoords = SCENE_DATA->pathWaypoints[waypointIndex - 1];
-            Vector2 prevWaypointPos
-                = grid_getTileCenter(SCENE_TRANSFORM, prevWaypointCoords.x, prevWaypointCoords.y);
+            Vector2 prevWaypointPos = grid_getTileCenter(SCENE_TRANSFORM, prevWaypointCoords.x, prevWaypointCoords.y);
 
             float pathTime = getPathTime(waypointIndex, mobsMovementSpeed[i]);
 
-            mobsTimeInCurrentPath[i] += applyModifiers(i, deltaTime, STATUS_EFFECT_TYPE_SLOW);
+            mobsTimeInCurrentPath[i] += applyEffectsToValue(i, deltaTime, STATUS_EFFECT_TYPE_SLOW);
             mobsTimeInCurrentPath[i] = Clamp(mobsTimeInCurrentPath[i], 0, pathTime);
 
             float t = mobsTimeInCurrentPath[i] / pathTime;
@@ -470,21 +432,21 @@ void wave_update(float deltaTime) {
             }
 
             for (int timerIndex = 0; timerIndex < SCENE_DATA_MAX_MOB_STAT_MODS; timerIndex++) {
-                ModifierTimer *timer = &mobsModifiersTimers[i][timerIndex];
+                StatusEffectTimer *timer = &mobsModifiersTimers[i][timerIndex];
 
-                if (timer == NULL || !timer->isActive) {
+                if (timer == NULL || !timer->is_active) {
                     continue;
                 }
 
-                if (timer->modifier.durationType == DURATION_TYPE_PERMANENT) {
+                if (timer->effect.duration_type == DURATION_TYPE_PERMANENT) {
                     continue;
                 }
 
-                timer->timeRemaining -= deltaTime;
+                timer->time_remaining -= deltaTime;
 
-                if (timer->timeRemaining <= 0) {
-                    timer->isActive = false;
-                    timer->timeRemaining = 0;
+                if (timer->time_remaining <= 0) {
+                    timer->is_active = false;
+                    timer->time_remaining = 0;
                 }
             }
         }

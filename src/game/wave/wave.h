@@ -1,5 +1,5 @@
 #pragma once
-#include "../scene/scene_data.h"
+#include "../combat/status_effects_data.h"
 #include <raylib.h>
 #include <stdbool.h>
 
@@ -8,7 +8,7 @@ int wave_getMobCount();
 
 // utils - mob
 void wave_mob_removeModifier(int mobIndex, int modifierId);
-void wave_mob_addModifier(int mobIndex, StatusEffect modifierData);
+void wave_mob_addStatusEffect(int mob_index, StatusEffect modifier_data);
 int wave_mob_isAlive(int mobIndex);
 Vector2 wave_mob_getPosition(int mobIndex);
 void wave_mob_takeDamage(int mobIndex, int damage);
