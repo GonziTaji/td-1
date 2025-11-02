@@ -6,6 +6,7 @@ typedef enum {
     STATUS_EFFECT_TYPE_SLOW,
     STATUS_EFFECT_TYPE_DOT,
     STATUS_EFFECT_TYPE_STUN,
+    STATUS_EFFECT_TYPE_DETONATE_ON_DEATH,
 } StatusEffectType;
 
 typedef struct {
@@ -19,3 +20,7 @@ typedef struct {
     float duration;
     float dot_interval;
 } StatusEffect;
+
+int status_effect_data_getCount();
+const StatusEffect *const status_effect_data_getDataById(int index);
+bool status_effect_data_load();

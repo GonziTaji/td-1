@@ -1,0 +1,51 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Bullet Modifiers Data Schema",
+    "description": "Bullet Modifiers Data",
+    "type": "object",
+    "properties": {
+        "$schema": {
+            "type": "string"
+        },
+        "data": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "aoe_range": {
+                        "type": "number"
+                    },
+                    "aoe_falloff_multiplier": {
+                        "type": "number"
+                    },
+                    "chain_max_bounces": {
+                        "type": "number"
+                    },
+                    "chain_bounce_range": {
+                        "type": "number"
+                    },
+                    "chain_bounce_multiplier": {
+                        "type": "number"
+                    },
+                    "detonate_damage": {
+                        "type": "number"
+                    },
+                    "detonate_range": {
+                        "type": "number"
+                    }
+                },
+                "required": [
+                    "name"
+                ],
+                "additionalProperties": false
+            }
+        }
+    },
+    "required": [
+        "data"
+    ],
+    "additionalProperties": false
+}

@@ -6,7 +6,7 @@
 #include "../scene/scene_data.h"
 #include "../scene/view_mamanger.h"
 #include "../wave/wave.h"
-#include "towers_data.h"
+#include "./towers_data.h"
 #include <float.h>
 #include <math.h>
 #include <raylib.h>
@@ -25,24 +25,6 @@ typedef struct {
     int mob_index;
     float damage;
 } BulletHit;
-
-const StatusEffect slow_effect_1 = {
-    .id = 1,
-    .type = STATUS_EFFECT_TYPE_SLOW,
-    .duration_type = DURATION_TYPE_TEMPORARY,
-    .duration = 1.0f,
-    .value = -20,
-    .value_type = MOD_VALUE_TYPE_MULTIPLIER,
-};
-
-const StatusEffect dot_effect_1 = {
-    .id = 2,
-    .type = STATUS_EFFECT_TYPE_DOT,
-    .duration_type = DURATION_TYPE_TEMPORARY,
-    .duration = 7.0f,
-    .value = -1.0f,
-    .value_type = MOD_VALUE_TYPE_FLAT,
-};
 
 Tower towersPool[SCENE_MAX_TOWERS];
 int tower_to_place_idx = 0;
@@ -142,7 +124,7 @@ void calculateTowerAttributes(Tower *tower) {
 }
 
 void calculateTowerBullet(Tower *tower) {
-    TowerBaseData *base = tower_data_getDataByIndex(tower->type_idx);
+    const TowerBaseData *base = tower_data_getDataByIndex(tower->type_idx);
     TowerAttributes *attr = &tower->attributes;
 
     // Init
@@ -212,7 +194,7 @@ void placeTower(int x, int y) {
 
     if (firstAvailableIndex != -1) {
         Tower *tower = &towersPool[firstAvailableIndex];
-        TowerBaseData *base = tower_data_getDataByIndex(tower_to_place_idx);
+        const TowerBaseData *base = tower_data_getDataByIndex(tower_to_place_idx);
 
         tower->type_idx = tower_to_place_idx;
         tower->on_scene = true;
@@ -223,6 +205,14 @@ void placeTower(int x, int y) {
         tower->time_since_last_shot = 1.0f / base->attributes.rate_of_fire;
 
         calculateTowerAttributes(tower);
+        calculateTowerBullet(tower);
+
+        // Temporal hardcoded status effect and modifiers to test
+        memcpy(&tower->status_effect[0], status_effect_data_getDataById(0), sizeof(StatusEffect));
+        tower->status_effect_count = 1;
+
+        memcpy(&tower->bullet_modifiers[0], bullet_mod_data_getDataByIndex(0), sizeof(BulletModifier));
+        tower->bullet_modifier_count = 1;
         calculateTowerBullet(tower);
 
         gameplayMode = GAMEPLAY_MODE_NORMAL;
@@ -292,6 +282,10 @@ void updateTowers(float deltaTime) {
         if (!towersPool[i].on_scene) {
             continue;
         }
+
+        // @performance: do this only when new modifiers/status effects are added
+        calculateTowerAttributes(&towersPool[i]);
+        calculateTowerBullet(&towersPool[i]);
 
         const TowerAttributes *attr = &towersPool[i].attributes;
 
@@ -393,7 +387,7 @@ void updateBullets(float deltaTime) {
                     int aoeModifier = Lerp(1, attrs->aoe_falloff_multiplier, distanceRatio);
 
                     hits[hits_count] = (BulletHit){
-                        .mob_index = damagedMobIndex,
+                        .mob_index = otherMobIndex,
                         .damage = bullet->damage * aoeModifier,
                     };
                     hits_count++;
@@ -432,7 +426,7 @@ void updateBullets(float deltaTime) {
 
                 // apply modifiers
                 for (int modIdx = 0; modIdx < bullet->effect_count; modIdx++) {
-                    wave_mob_addStatusEffect(damagedMobIndex, bullet->effects[modIdx]);
+                    wave_mob_addStatusEffect(hits[i].mob_index, bullet->effects[modIdx]);
                 }
             }
         }

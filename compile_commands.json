@@ -169,11 +169,11 @@
    "-g",
    "-Werror",
    "-c",
-   "src/game/combat/status_effect.c",
+   "src/game/combat/bullet_modifiers_data.c",
    "-o",
-   "build/src/game/combat/status_effect.o"
+   "build/src/game/combat/bullet_modifiers_data.o"
   ],
-  "file": "src/game/combat/status_effect.c"
+  "file": "src/game/combat/bullet_modifiers_data.c"
  },
  {
   "directory": "/home/yogusita/proyectos/td-1",
@@ -185,27 +185,11 @@
    "-g",
    "-Werror",
    "-c",
-   "src/game/combat/modifiers_data.c",
+   "src/game/combat/tower_modifiers_data.c",
    "-o",
-   "build/src/game/combat/modifiers_data.o"
+   "build/src/game/combat/tower_modifiers_data.o"
   ],
-  "file": "src/game/combat/modifiers_data.c"
- },
- {
-  "directory": "/home/yogusita/proyectos/td-1",
-  "arguments": [
-   "gcc",
-   "-Wall",
-   "-Iinclude",
-   "-Ithird_party",
-   "-g",
-   "-Werror",
-   "-c",
-   "src/game/combat/modifier.c",
-   "-o",
-   "build/src/game/combat/modifier.o"
-  ],
-  "file": "src/game/combat/modifier.c"
+  "file": "src/game/combat/tower_modifiers_data.c"
  },
  {
   "directory": "/home/yogusita/proyectos/td-1",

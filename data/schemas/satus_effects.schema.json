@@ -1,0 +1,72 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Status Effects Data Schema",
+    "description": "Status Effects Data",
+    "type": "object",
+    "properties": {
+        "$schema": {
+            "type": "string"
+        },
+        "data": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "SLOW",
+                            "DOT",
+                            "STUN",
+                            "DETONATE_ON_DEATH"
+                        ]
+                    },
+                    "duration_type": {
+                        "type": "string",
+                        "enum": [
+                            "TEMPORAL",
+                            "PERMANENT"
+                        ]
+                    },
+                    "value_type": {
+                        "type": "string",
+                        "enum": [
+                            "FLAT",
+                            "MULTIPLIER"
+                        ]
+                    },
+                    "value": {
+                        "type": "number"
+                    },
+                    "duration": {
+                        "type": "number",
+                        "minimum": 0
+                    },
+                    "range": {
+                        "type": "number",
+                        "minimum": 0
+                    },
+                    "interval": {
+                        "type": "number",
+                        "minimum": 0
+                    }
+                },
+                "required": [
+                    "name",
+                    "type",
+                    "duration_type",
+                    "value_type",
+                    "value"
+                ],
+                "additionalProperties": false
+            }
+        }
+    },
+    "required": [
+        "data"
+    ],
+    "additionalProperties": false
+}

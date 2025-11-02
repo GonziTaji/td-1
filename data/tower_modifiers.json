@@ -1,0 +1,15 @@
+{
+    "$schema": "./schemas/tower_modifiers.schema.json",
+    "data": [
+        {
+            "name": "Basic multishot",
+            "value_type": "FLAT",
+            "multishot": 1
+        },
+        {
+            "name": "Basic range",
+            "value_type": "MULTIPLIER",
+            "range": 0.2
+        }
+    ]
+}

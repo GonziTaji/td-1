@@ -170,30 +170,30 @@ float applyEffectsToValue(int mobIndex, float value, StatusEffectType effectType
 
 // Mob functions
 
-void wave_mob_removeModifier(int mobIndex, int modifierId) {
-    StatusEffectTimer *timers = mobsModifiersTimers[mobIndex];
+void wave_mob_removeStatusEffect(int mob_index, int mod_index) {
+    StatusEffectTimer *timers = mobsModifiersTimers[mob_index];
 
     for (int i = 0; i < SCENE_DATA_MAX_MOB_STAT_MODS; i++) {
         if (timers[i].time_remaining <= 0 || !timers[i].is_active) {
             continue;
         }
 
-        if (timers[i].effect.id == modifierId) {
+        if (i == mod_index) {
             timers[i].is_active = false;
             return;
         }
     }
 }
 
-void wave_mob_addStatusEffect(int mob_index, StatusEffect modifier_data) {
+void wave_mob_addStatusEffect(int mob_index, StatusEffect status_effect) {
     int availableSlotIndex = -1;
 
     StatusEffectTimer *timers = mobsModifiersTimers[mob_index];
 
     for (int i = 0; i < SCENE_DATA_MAX_MOB_STAT_MODS; i++) {
-        if (timers[i].is_active && timers[i].effect.id == modifier_data.id) {
+        if (timers[i].effect.id == status_effect.id && timers[i].is_active) {
             // refresh timer and exit
-            timers[i].time_remaining = modifier_data.duration;
+            timers[i].time_remaining = status_effect.duration;
             return;
         }
 
@@ -209,8 +209,8 @@ void wave_mob_addStatusEffect(int mob_index, StatusEffect modifier_data) {
 
     if (availableSlotIndex != -1) {
         timers[availableSlotIndex].is_active = true;
-        timers[availableSlotIndex].effect = modifier_data;
-        timers[availableSlotIndex].time_remaining = modifier_data.duration;
+        timers[availableSlotIndex].effect = status_effect;
+        timers[availableSlotIndex].time_remaining = status_effect.duration;
     }
 }
 

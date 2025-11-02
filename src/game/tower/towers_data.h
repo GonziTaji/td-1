@@ -1,7 +1,8 @@
 #pragma once
 
 #include "../../utils/utils.h"
-#include "../combat/modifiers_data.h"
+#include "../combat/bullet_modifiers_data.h"
+#include "../combat/tower_modifiers_data.h"
 #include "../combat/status_effects_data.h"
 #include <raylib.h>
 #include <stdbool.h>
@@ -72,6 +73,6 @@ typedef struct {
     int count;
 } TowerRegistry;
 
-TowerBaseData *tower_data_getDataByIndex(int tower_id);
+const TowerBaseData * const tower_data_getDataByIndex(int tower_id);
 int tower_data_getTowerTypeCount();
 bool tower_data_load();

@@ -33,7 +33,7 @@ int tower_data_getTowerTypeCount() {
     return tower_registry.count;
 }
 
-TowerBaseData *tower_data_getDataByIndex(int index) {
+const TowerBaseData *const tower_data_getDataByIndex(int index) {
     assert(index < tower_registry.count && index >= 0 && "Invalid index");
 
     return &tower_registry.data[index];
@@ -58,20 +58,22 @@ bool tower_data_load() {
     fclose(file);
 
     cJSON *root = cJSON_Parse(data);
-    if (!root || !cJSON_IsArray(root)) {
-        fprintf(stderr, "JSON data must be an array. File: %s\n", FILE_PATH);
+    cJSON *json_data = cJSON_GetObjectItem(root, "data");
+
+    if (!json_data || !cJSON_IsArray(json_data)) {
+        fprintf(stderr, "ERROR: JSON data must be an array. File: %s\n", FILE_PATH);
         free(data);
         return false;
     }
 
-    int count = cJSON_GetArraySize(root);
+    int count = cJSON_GetArraySize(json_data);
     float size = sizeof(TowerBaseData) * count;
 
     tower_registry.count = count;
     tower_registry.data = malloc(size);
 
     for (int i = 0; i < count; i++) {
-        cJSON *towerJSON = cJSON_GetArrayItem(root, i);
+        cJSON *towerJSON = cJSON_GetArrayItem(json_data, i);
         TowerBaseData *tower = &tower_registry.data[i];
 
         cJSON *name = cJSON_GetObjectItem(towerJSON, "name");
@@ -94,7 +96,7 @@ bool tower_data_load() {
         tower->bullet_width = cJSON_GetObjectItem(towerJSON, "bullet_width")->valueint;
     }
 
-    cJSON_Delete(root);
+    cJSON_Delete(json_data);
     free(data);
     return true;
 }

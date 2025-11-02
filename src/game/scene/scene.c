@@ -32,6 +32,10 @@ typedef enum {
 
 void scene_init(int sceneIndex) {
     tower_data_load();
+    bullet_mod_data_load();
+    tower_mod_data_load();
+    status_effect_data_load();
+
     scene_data_load(sceneIndex);
 
     towers_clear();

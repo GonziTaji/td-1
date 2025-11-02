@@ -1,0 +1,100 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Tower Data Schema",
+    "description": "Towers attributes",
+    "type": "object",
+    "properties": {
+        "$schema": {
+            "type": "string"
+        },
+        "data": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "attributes": {
+                        "type": "object",
+                        "properties": {
+                            "damage": {
+                                "type": "number",
+                                "minimum": 0
+                            },
+                            "range": {
+                                "type": "number",
+                                "minimum": 0
+                            },
+                            "rate_of_fire": {
+                                "type": "number",
+                                "minimum": 0
+                            },
+                            "bullet_speed": {
+                                "type": "number",
+                                "minimum": 0
+                            },
+                            "multishot": {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            "crit_chance_percent": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 100
+                            }
+                        },
+                        "required": [
+                            "damage",
+                            "range",
+                            "rate_of_fire",
+                            "bullet_speed",
+                            "multishot",
+                            "crit_chance_percent"
+                        ],
+                        "additionalProperties": false
+                    },
+                    "tower_color": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 255
+                        },
+                        "minItems": 4,
+                        "maxItems": 4,
+                        "description": "Color RGBA de la torre."
+                    },
+                    "bullet_color": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 255
+                        },
+                        "minItems": 4,
+                        "maxItems": 4,
+                        "description": "Color RGBA de las balas."
+                    },
+                    "bullet_width": {
+                        "type": "integer",
+                        "minimum": 0
+                    }
+                },
+                "required": [
+                    "name",
+                    "type",
+                    "attributes",
+                    "tower_color",
+                    "bullet_color",
+                    "bullet_width"
+                ],
+                "additionalProperties": false
+            }
+        }
+    },
+    "required": [
+        "data"
+    ],
+    "additionalProperties": false
+}

@@ -1,0 +1,39 @@
+{
+    "$schema": "./schemas/satus_effects.schema.json",
+    "data": [
+        {
+            "name": "Basic slow",
+            "type": "SLOW",
+            "duration_type": "TEMPORAL",
+            "value_type": "MULTIPLIER",
+            "duration": 0.6,
+            "value": 0.8
+        },
+        {
+            "name": "Basic damage over time",
+            "type": "DOT",
+            "duration_type": "TEMPORAL",
+            "value_type": "FLAT",
+            "duration": 2.0,
+            "interval": 0.4,
+            "value": -5
+        },
+        {
+            "name": "Basic detonate on death",
+            "type": "DETONATE_ON_DEATH",
+            "duration_type": "PERMANENT",
+            "value_type": "FLAT",
+            "duration": 0,
+            "value": -20,
+            "range": 60
+        },
+        {
+            "name": "Basic paralize",
+            "type": "STUN",
+            "duration_type": "TEMPORAL",
+            "value_type": "FLAT",
+            "duration": 0.2,
+            "value": 0
+        }
+    ]
+}

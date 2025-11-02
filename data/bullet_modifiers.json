@@ -1,0 +1,21 @@
+{
+    "$schema": "./schemas/bullet_modifiers.schema.json",
+    "data": [
+        {
+            "name": "Basic aoe",
+            "aoe_range": 100,
+            "aoe_falloff_multiplier": 0.4
+        },
+        {
+            "name": "Basic chain",
+            "chain_max_bounces": 4,
+            "chain_bounce_range": 100,
+            "chain_bounce_multiplier": -0.8
+        },
+        {
+            "name": "Basic detonate on death",
+            "detonate_damage": 10,
+            "detonate_range": 60
+        }
+    ]
+}
