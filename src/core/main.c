@@ -1,3 +1,4 @@
+#include "../editor/editor.h"
 #include "../game/game.h"
 #include "asset_manager.h"
 #include "raylib.h"
@@ -42,7 +43,29 @@ int main(void) {
 
         game_processInput(&g);
         game_update(&g, deltaTime);
-        game_draw(&g);
+
+#ifdef ENABLE_EDITOR
+        editor_Update(deltaTime);
+#endif
+
+        const Texture *game_texture = game_Render(&g);
+
+        // Draw render texture in game texture
+        BeginDrawing();
+
+        ClearBackground(BLACK);
+
+        Rectangle source = {0.0f, 0.0f, game_texture->width, -game_texture->height};
+        Rectangle dest = {0, 0, GetScreenWidth(), GetScreenHeight()};
+        Vector2 origin = {0, 0};
+
+        DrawTexturePro(*game_texture, source, dest, origin, 0.0f, WHITE);
+
+#ifdef ENABLE_EDITOR
+        editor_DrawUI();
+#endif
+
+        EndDrawing();
     }
 
     // Should we?

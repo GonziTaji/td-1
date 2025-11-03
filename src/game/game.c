@@ -11,11 +11,11 @@
 
 #define GAME_VIEW_WIDTH 1920
 
-RenderTexture2D target;
-int previousScreenWidth;
-bool paused = false;
+static RenderTexture2D target;
 
-void calculateGameView(Game *game) {
+static bool paused = false;
+
+static void calculateGameView(Game *game) {
     game->scale = (float)GetScreenWidth() / GAME_VIEW_WIDTH;
 
     UnloadRenderTexture(target);
@@ -58,7 +58,7 @@ void game_update(Game *game, float deltaTime) {
     }
 }
 
-void game_draw(Game *game) {
+const Texture *const game_Render(Game *game) {
     // Draw scene in target render texture
     BeginTextureMode(target);
 
@@ -68,21 +68,8 @@ void game_draw(Game *game) {
 
     debugPanel_draw();
 
-    EndTextureMode();
-
-    // Draw render texture in game texture
-    BeginDrawing();
-
-    ClearBackground(BLACK);
-
-    Rectangle source = {0.0f, 0.0f, target.texture.width, -target.texture.height};
-    Rectangle dest = {0, 0, GetScreenWidth(), GetScreenHeight()};
-    Vector2 origin = {0, 0};
-
-    DrawTexturePro(target.texture, source, dest, origin, 0.0f, WHITE);
-
     if (paused) {
-        DrawRectangleRec(dest, (Color){0, 0, 0, 100});
+        DrawRectangle(0, 0, target.texture.width, target.texture.height, (Color){0, 0, 0, 100});
 
         // to some kind of text table?
         const char *text = "Paused";
@@ -90,12 +77,14 @@ void game_draw(Game *game) {
 
         Vector2 textMeasurements = MeasureTextEx(uiFont, text, fontSize, 0);
         Vector2 textPos = {
-            (dest.width - textMeasurements.x) / 2,
-            (dest.height - textMeasurements.y) / 2,
+            (target.texture.width - textMeasurements.x) / 2,
+            (target.texture.height - textMeasurements.y) / 2,
         };
 
         DrawTextEx(uiFont, text, textPos, fontSize, 0, WHITE);
     }
 
-    EndDrawing();
+    EndTextureMode();
+
+    return &target.texture;
 }

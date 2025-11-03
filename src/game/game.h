@@ -11,4 +11,4 @@ typedef struct Game {
 void game_init(Game *game);
 void game_processInput(Game *game);
 void game_update(Game *game, float deltaTime);
-void game_draw(Game *game);
+const Texture *const game_Render(Game *game);

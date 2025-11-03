@@ -26,19 +26,20 @@ typedef struct {
     float damage;
 } BulletHit;
 
-Tower towersPool[SCENE_MAX_TOWERS];
-int tower_to_place_idx = 0;
+static Tower towersPool[SCENE_MAX_TOWERS];
+static int tower_to_place_idx = 0;
+static int tower_selected_idx = -1;
 
-TowerBullet towerBullets[SCENE_MAX_BULLETS];
+static TowerBullet towerBullets[SCENE_MAX_BULLETS];
 
 /// If `a` should be placed before `b`, compare function should return positive
 /// value. If it should be placed after `b`, it should return negative value.
 /// Returns 0 otherwise.
-int compareFloats(const void *a, const void *b) {
+static int compareFloats(const void *a, const void *b) {
     return (*(float *)a - *(float *)b);
 }
 
-void spawnBullet(const Tower *tower, int mobTargetIndex) {
+static void spawnBullet(const Tower *tower, int mobTargetIndex) {
     for (int i = 0; i < SCENE_MAX_BULLETS; i++) {
         if (towerBullets[i].alive) {
             continue;
@@ -55,13 +56,13 @@ void spawnBullet(const Tower *tower, int mobTargetIndex) {
     }
 }
 
-float getScaledTowerRange(float range) {
+static float getScaledTowerRange(float range) {
     float scale = SCENE_TRANSFORM->scale / SCENE_SCALE_INITIAL;
 
     return range * scale;
 }
 
-bool isInRange(int mobIndex, Vector2 towerPos, float towerRange) {
+static bool isInRange(int mobIndex, Vector2 towerPos, float towerRange) {
     float scaledRange = getScaledTowerRange(towerRange);
 
     Vector2 mobPos = wave_mob_getPosition(mobIndex);
@@ -71,7 +72,7 @@ bool isInRange(int mobIndex, Vector2 towerPos, float towerRange) {
 /// Returns -1 if no mob found
 /// @param `maxDistanceSqrt` - the tower range squared, to be compared to the
 /// distance squared (to avoid square roots)
-int getTowerTarget(Vector2 towerPosition, float towerRange) {
+static int getTowerTarget(Vector2 towerPosition, float towerRange) {
     int mobCount = wave_getMobCount();
 
     int mostTraveled = 0;
@@ -97,7 +98,7 @@ int getTowerTarget(Vector2 towerPosition, float towerRange) {
     return targetIndex;
 }
 
-void calculateTowerAttributes(Tower *tower) {
+static void calculateTowerAttributes(Tower *tower) {
     tower->attributes = tower_data_getDataByIndex(tower->type_idx)->attributes;
 
     // Apply flat modifiers
@@ -123,7 +124,7 @@ void calculateTowerAttributes(Tower *tower) {
     }
 }
 
-void calculateTowerBullet(Tower *tower) {
+static void calculateTowerBullet(Tower *tower) {
     const TowerBaseData *base = tower_data_getDataByIndex(tower->type_idx);
     TowerAttributes *attr = &tower->attributes;
 
@@ -173,7 +174,7 @@ void calculateTowerBullet(Tower *tower) {
     memcpy(tower->bullet.effects, tower->status_effect, tower->status_effect_count * sizeof(StatusEffect));
 }
 
-void placeTower(int x, int y) {
+static void placeTower(int x, int y) {
     if (wave_isPath(x, y)) {
         return;
     }
@@ -221,7 +222,7 @@ void placeTower(int x, int y) {
     // nothing happens if the tower is not set because there's no more space
 }
 
-void removeTower(int x, int y) {
+static void removeTower(int x, int y) {
     for (int i = 0; i < SCENE_MAX_TOWERS; i++) {
         if (towersPool[i].coords.x == x && towersPool[i].coords.y == y) {
             towersPool[i].on_scene = false;
@@ -245,6 +246,16 @@ void towers_clear() {
     }
 }
 
+static int GetTowerIndexFromCoords(V2i coords) {
+    for (int i = 0; i < SCENE_MAX_TOWERS; i++) {
+        if (towersPool[i].coords.x == coords.x && towersPool[i].coords.y == coords.y) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
 void towers_handleInput() {
     if (input.mouseButtonState[MOUSE_BUTTON_LEFT] == MOUSE_BUTTON_STATE_PRESSED) {
         V2i coords = grid_worldPointToCoords(SCENE_TRANSFORM, input.worldMousePos.x, input.worldMousePos.y);
@@ -252,7 +263,7 @@ void towers_handleInput() {
         if (grid_isValidCoords(SCENE_DATA->cols, SCENE_DATA->rows, coords.x, coords.y)) {
             switch (gameplayMode) {
             case GAMEPLAY_MODE_NORMAL:
-                // Select tower?
+                tower_selected_idx = GetTowerIndexFromCoords(coords);
                 break;
             case GAMEPLAY_MODE_TOWER_REMOVE:
                 removeTower(coords.x, coords.y);
@@ -277,7 +288,7 @@ void towers_handleInput() {
     }
 }
 
-void updateTowers(float deltaTime) {
+static void updateTowers(float deltaTime) {
     for (int i = 0; i < SCENE_MAX_TOWERS; i++) {
         if (!towersPool[i].on_scene) {
             continue;
@@ -324,7 +335,7 @@ void updateTowers(float deltaTime) {
 // --------
 // UPDATE -
 
-void updateBullets(float deltaTime) {
+static void updateBullets(float deltaTime) {
     for (int bulletIndex = 0; bulletIndex < SCENE_MAX_BULLETS; bulletIndex++) {
         if (!towerBullets[bulletIndex].alive) {
             continue;
@@ -441,22 +452,30 @@ void towers_update(float deltaTime) {
 // ------
 // DRAW -
 
-void drawTower(int type_id, Vector2 towerCenter) {
+static void drawTower(int type_id, Vector2 tower_center, bool is_selected) {
     int towerWidth = 16;
     int towerHeight = 8;
 
+    // selection border
+    if (is_selected) {
+        int border_width = 2;
+        int w = towerWidth + (border_width * 4);
+        int h = towerHeight + (border_width * 2);
+        DrawEllipse(tower_center.x, tower_center.y, w, h, (Color){251, 245, 197, 255});
+    }
+
     Color c = tower_data_getDataByIndex(type_id)->tower_color;
 
-    DrawEllipse(towerCenter.x, towerCenter.y, towerWidth, towerHeight, c);
+    DrawEllipse(tower_center.x, tower_center.y, towerWidth, towerHeight, c);
 
     // red overlay
     if (gameplayMode == GAMEPLAY_MODE_TOWER_REMOVE) {
         c = (Color){244, 77, 67, 120};
-        DrawEllipse(towerCenter.x, towerCenter.y, towerWidth, towerHeight, c);
+        DrawEllipse(tower_center.x, tower_center.y, towerWidth, towerHeight, c);
     }
 }
 
-void drawRangeIndicator(float range, int towerX, int towerY) {
+static void drawRangeIndicator(float range, int towerX, int towerY) {
     float scaledTowerRange = getScaledTowerRange(range);
     Vector2 rangeIndicatorCenter = grid_getTileCenter(SCENE_TRANSFORM, towerX, towerY);
 
@@ -475,30 +494,30 @@ void drawRangeIndicator(float range, int towerX, int towerY) {
     }
 }
 
-void drawTowerToPlace() {
+static void drawTowerToPlace() {
     Vector2 m = input.worldMousePos;
     V2i coords = grid_worldPointToCoords(SCENE_TRANSFORM, m.x, m.y);
 
     if (grid_isValidCoords(SCENE_DATA->cols, SCENE_DATA->rows, coords.x, coords.y)) {
         Vector2 tileCenter = grid_getTileCenter(SCENE_TRANSFORM, coords.x, coords.y);
-        drawTower(tower_to_place_idx, tileCenter);
+        drawTower(tower_to_place_idx, tileCenter, false);
 
         float range = tower_data_getDataByIndex(tower_to_place_idx)->attributes.range;
         drawRangeIndicator(range, coords.x, coords.y);
     }
 }
 
-void drawTowerRayToTarget(Vector2 towerPos, int mobIndex) {
+static void drawTowerRayToTarget(Vector2 towerPos, int mobIndex) {
     Vector2 mobPos = wave_mob_getPosition(mobIndex);
     DrawLine(towerPos.x, towerPos.y, mobPos.x, mobPos.y, YELLOW);
 }
 
-void drawTowerTarget(Vector2 tileCenter, int mobIndex) {
+static void drawTowerTarget(Vector2 tileCenter, int mobIndex) {
     snprintf(buffer, sizeof(buffer), "%d", mobIndex);
     DrawText(buffer, tileCenter.x - 8, tileCenter.y - 30, 16, BLACK);
 }
 
-void drawBullet(const TowerBullet *bullet) {
+static void drawBullet(const TowerBullet *bullet) {
     DrawCircle(bullet->position.x, bullet->position.y, bullet->render_width, bullet->color);
 }
 
@@ -511,7 +530,7 @@ void towers_draw() {
         V2i towerCoords = towersPool[i].coords;
         Vector2 tileCenter = grid_getTileCenter(SCENE_TRANSFORM, towerCoords.x, towerCoords.y);
 
-        drawTower(towersPool[i].type_idx, tileCenter);
+        drawTower(towersPool[i].type_idx, tileCenter, i == tower_selected_idx);
 
         if (gameplay_drawInfo) {
             int mobIndex = towersPool[i].current_target_idx;

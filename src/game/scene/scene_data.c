@@ -7,7 +7,7 @@
 #define SCENE_DATA_FILE_DIR "resources/scenes_data"
 #define SCENE_DATA_MAX_FILE_PATH SCENE_DATA_NAME_MAX_LENGTH + sizeof(SCENE_DATA_FILE_DIR)
 
-SceneData data = {
+static SceneData data = {
     .name = "",
     .cols = 0,
     .rows = 0,
@@ -19,7 +19,7 @@ SceneData data = {
 
 const SceneData *const SCENE_DATA = &data;
 
-void parseSceneFile(const char *path) {
+static void parseSceneFile(const char *path) {
     FILE *f = fopen(path, "r");
     if (!f) {
         perror("No se pudo abrir el archivo");
@@ -56,8 +56,7 @@ void parseSceneFile(const char *path) {
         } break;
 
         case 'P': { // Waypoint
-            assert(data.pathWaypointsCount <= SCENE_DATA_MAX_WAYPOINTS
-                   && "Scene data with too many waypoints");
+            assert(data.pathWaypointsCount <= SCENE_DATA_MAX_WAYPOINTS && "Scene data with too many waypoints");
 
             V2i *p = &data.pathWaypoints[data.pathWaypointsCount];
             int scanResponse = sscanf(line, "P %d %d", &p->x, &p->y);
@@ -71,8 +70,7 @@ void parseSceneFile(const char *path) {
             assert(data.wavesCount <= SCENE_DATA_MAX_WAVES && "Scene data with too many waves");
 
             WaveData *w = &data.waves[data.wavesCount];
-            int scanResponse = sscanf(
-                line, "W %d %d %d", &w->startDelaySeconds, (int *)(&w->mobType), &w->mobsCount);
+            int scanResponse = sscanf(line, "W %d %d %d", &w->startDelaySeconds, (int *)(&w->mobType), &w->mobsCount);
 
             assert(scanResponse == 3 && "Line failed to be parsed. Missing values?");
             assert(w->mobType < MOB_TYPE_COUNT && "Invalid mob type");

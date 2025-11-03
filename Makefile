@@ -1,6 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Iinclude -Ithird_party
 DEBUGFLAGS = -g -Werror
+EDITORFLAGS = -DENABLE_EDITOR
 RAYLIB_FLAGS = -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
 
 SRC := $(shell find src -name "*.c") $(shell find third_party -name "*.c") 
@@ -18,7 +19,7 @@ $(OUT): $(OBJ)
 # Compilar cada .c a .o manteniendo la estructura
 build/%.o: %.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(DEBUGFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(DEBUGFLAGS) $(EDITORFLAGS) -c $< -o $@
 
 # Generar compile_commands.json con compiledb
 compile_commands.json: $(SRC) Makefile

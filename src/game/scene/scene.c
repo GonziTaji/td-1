@@ -15,10 +15,10 @@
 #include <raymath.h>
 #include <stdbool.h>
 
-int hoveredTileIndex = -1;
+static int hoveredTileIndex = -1;
 const int *const scene_hoveredTileIndex = &hoveredTileIndex;
 
-void drawIsoRecLines(IsoRec isoRec, Color color) {
+static void drawIsoRecLines(IsoRec isoRec, Color color) {
     DrawLineEx(isoRec.top, isoRec.left, 2, color);
     DrawLineEx(isoRec.left, isoRec.bottom, 2, color);
     DrawLineEx(isoRec.bottom, isoRec.right, 2, color);
@@ -73,7 +73,7 @@ void scene_update(float deltaTime) {
     towers_update(deltaTime);
 }
 
-void drawTiles() {
+static void drawTiles() {
     int tileCount = SCENE_DATA->cols * SCENE_DATA->rows;
 
     for (int i = 0; i < tileCount; i++) {
