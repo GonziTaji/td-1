@@ -110,18 +110,6 @@ void drawMobs() {
     }
 }
 
-// void drawPath() {
-//     for (int indexEnd = 1; indexEnd < SCENE_DATA->pathWaypointsCount; indexEnd++) {
-//         V2i waypointStart = SCENE_DATA->pathWaypoints[indexEnd - 1];
-//         V2i waypointEnd = SCENE_DATA->pathWaypoints[indexEnd];
-//
-//         Vector2 start = grid_getTileCenter(SCENE_TRANSFORM, waypointStart.x, waypointStart.y);
-//         Vector2 end = grid_getTileCenter(SCENE_TRANSFORM, waypointEnd.x, waypointEnd.y);
-//
-//         DrawLineEx(start, end, TILE_WIDTH, (Color){234, 227, 173, 100});
-//     }
-// }
-
 float getPathTime(int waypointIndex, float movementSpeed) {
     if (waypointIndex == 0)
         return 0;
@@ -454,7 +442,5 @@ void wave_update(float deltaTime) {
 }
 
 void wave_draw() {
-    // for debug. Eventually, path will have a different sprite
-    // drawPath();
     drawMobs();
 }

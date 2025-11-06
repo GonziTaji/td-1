@@ -15,9 +15,10 @@ Font uiFont;
 Font debugFont;
 
 void assetManager_loadAssets() {
-    char *fontUrl = "resources/fonts/micro_5/regular.ttf";
-    uiFont = LoadFont(fontUrl);
+    // char *fontUrl = "resources/fonts/micro_5/regular.ttf";
+    // uiFont = LoadFont(fontUrl);
     debugFont = LoadFont("resources/fonts/roboto/static/Roboto-Bold.ttf");
+    uiFont = debugFont;
 
     plantAtlas = LoadTexture("resources/assets/plants.png");
 
@@ -38,7 +39,7 @@ void assetManager_loadAssets() {
 
 // If this is done when the game closes, is it really necesary?
 void assetManager_unloadAssets() {
-    UnloadFont(uiFont);
+    // UnloadFont(uiFont);
     UnloadTexture(plantAtlas);
     UnloadTexture(gardenTexture);
     UnloadTexture(planterAtlas);

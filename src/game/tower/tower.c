@@ -19,7 +19,7 @@
 
 static char buffer[16];
 
-GameplayMode gameplayMode = GAMEPLAY_MODE_NORMAL;
+static GameplayMode gameplayMode = GAMEPLAY_MODE_NORMAL;
 
 typedef struct {
     int mob_index;
@@ -27,7 +27,7 @@ typedef struct {
 } BulletHit;
 
 static Tower towersPool[SCENE_MAX_TOWERS];
-static int tower_to_place_idx = 0;
+static int tower_to_place_data_idx = 0;
 static int tower_selected_idx = -1;
 
 static TowerBullet towerBullets[SCENE_MAX_BULLETS];
@@ -195,9 +195,9 @@ static void placeTower(int x, int y) {
 
     if (firstAvailableIndex != -1) {
         Tower *tower = &towersPool[firstAvailableIndex];
-        const TowerBaseData *base = tower_data_getDataByIndex(tower_to_place_idx);
+        const TowerBaseData *base = tower_data_getDataByIndex(tower_to_place_data_idx);
 
-        tower->type_idx = tower_to_place_idx;
+        tower->type_idx = tower_to_place_data_idx;
         tower->on_scene = true;
         tower->coords.x = x;
         tower->coords.y = y;
@@ -284,7 +284,7 @@ void towers_handleInput() {
     }
 
     if (gameplayMode == GAMEPLAY_MODE_TOWER_PLACE && input.keyPressed == KEY_TAB) {
-        tower_to_place_idx = (tower_to_place_idx + 1) % tower_data_getTowerTypeCount();
+        tower_to_place_data_idx = (tower_to_place_data_idx + 1) % tower_data_getTowerTypeCount();
     }
 }
 
@@ -500,9 +500,9 @@ static void drawTowerToPlace() {
 
     if (grid_isValidCoords(SCENE_DATA->cols, SCENE_DATA->rows, coords.x, coords.y)) {
         Vector2 tileCenter = grid_getTileCenter(SCENE_TRANSFORM, coords.x, coords.y);
-        drawTower(tower_to_place_idx, tileCenter, false);
+        drawTower(tower_to_place_data_idx, tileCenter, false);
 
-        float range = tower_data_getDataByIndex(tower_to_place_idx)->attributes.range;
+        float range = tower_data_getDataByIndex(tower_to_place_data_idx)->attributes.range;
         drawRangeIndicator(range, coords.x, coords.y);
     }
 }
@@ -536,7 +536,7 @@ void towers_draw() {
             int mobIndex = towersPool[i].current_target_idx;
             drawTowerTarget(tileCenter, mobIndex);
 
-            float range = tower_data_getDataByIndex(tower_to_place_idx)->attributes.range;
+            float range = tower_data_getDataByIndex(tower_to_place_data_idx)->attributes.range;
             drawRangeIndicator(range, towerCoords.x, towerCoords.y);
 
             if (wave_mob_isAlive(mobIndex)) {

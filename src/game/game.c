@@ -1,6 +1,5 @@
 #include "game.h"
 #include "../core/asset_manager.h"
-#include "../debug/debug_panel.h"
 #include "../input/input.h"
 #include "../input/key_map.h"
 #include "./constants.h"
@@ -65,8 +64,6 @@ const Texture *const game_Render(Game *game) {
     ClearBackground((Color){100, 100, 100, 100});
 
     scene_draw();
-
-    debugPanel_draw();
 
     if (paused) {
         DrawRectangle(0, 0, target.texture.width, target.texture.height, (Color){0, 0, 0, 100});

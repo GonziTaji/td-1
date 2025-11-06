@@ -62,7 +62,7 @@ int main(void) {
         DrawTexturePro(*game_texture, source, dest, origin, 0.0f, WHITE);
 
 #ifdef ENABLE_EDITOR
-        editor_DrawUI();
+        editor_Draw();
 #endif
 
         EndDrawing();

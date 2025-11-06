@@ -1,6 +1,6 @@
 #include "input.h"
 #include "../core/asset_manager.h"
-#include "../ui/ui_text_box.h"
+#include "../ui_old/ui_text_box.h"
 #include <math.h>
 #include <raylib.h>
 #include <stdio.h>
@@ -31,8 +31,8 @@ void input_update(float scale) {
 
         } else if (IsMouseButtonDown(i)) {
             int threshold = 3;
-            bool thresholdPassed = fabs(input.worldMouseDelta.x) > threshold
-                                || fabs(input.worldMouseDelta.y) > threshold;
+            bool thresholdPassed
+                = fabs(input.worldMouseDelta.x) > threshold || fabs(input.worldMouseDelta.y) > threshold;
 
             if (thresholdPassed) {
                 input.mouseButtonState[i] = MOUSE_BUTTON_STATE_DRAGGING;
