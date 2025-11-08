@@ -42,5 +42,7 @@ void scene_data_RemoveLastWaypoint();
 bool scene_data_WaypointCanBeSet(V2i new_waypoint);
 bool scene_data_AddWaypoint(V2i new_waypoint);
 void scene_data_ChangeGridDimensions(int cols, int rows);
+void scene_data_AddWave(float start_delay, int mob_count, MobType mob_type);
+void scene_data_RemoveWave(int wave_index);
 
 #endif

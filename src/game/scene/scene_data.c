@@ -121,10 +121,12 @@ void scene_data_load(int sceneIndex) {
 
 #if ENABLE_EDITOR
 
+// General
 void scene_data_ReloadCurrentScene() {
     scene_data_load(current_scene);
 }
 
+// Scene path functions
 void scene_data_RemoveLastWaypoint() {
     data.pathWaypointsCount--;
 }
@@ -191,9 +193,29 @@ bool scene_data_AddWaypoint(V2i new_waypoint) {
     return true;
 }
 
+// Scene grid functions
 void scene_data_ChangeGridDimensions(int cols, int rows) {
     data.cols = cols;
     data.rows = rows;
+}
+
+// Scene wave functions
+void scene_data_AddWave(float start_delay, int mob_count, MobType mob_type) {
+    data.waves[data.wavesCount] = (WaveData){
+        .mobsCount = mob_count,
+        .mobType = mob_type,
+        .startDelaySeconds = start_delay,
+    };
+
+    data.wavesCount++;
+}
+
+void scene_data_RemoveWave(int wave_index) {
+    for (int i = wave_index; i < data.wavesCount; i++) {
+        data.waves[i] = data.waves[i + 1];
+    }
+
+    data.wavesCount--;
 }
 
 #endif

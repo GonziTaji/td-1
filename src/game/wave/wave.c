@@ -26,7 +26,7 @@ typedef struct {
     bool is_active;
 } StatusEffectTimer;
 
-struct {
+static struct {
     int maxHealth;
     float movementSpeed;
     Color color;
@@ -35,22 +35,22 @@ struct {
     [MOB_TYPE_BLUE] = {30, 2, BLUE},
 };
 
-int currentWaveIndex = -1;
+static int currentWaveIndex = -1;
 
-int mobsHealth[SCENE_DATA_MAX_MOBS];
-MobType mobsTypes[SCENE_DATA_MAX_MOBS];
-int mobsWaveIndex[SCENE_DATA_MAX_MOBS];
-Vector2 mobsPosition[SCENE_DATA_MAX_MOBS];
-MobStatus mobsStatus[SCENE_DATA_MAX_MOBS];
-int mobsTargetWaypointIndex[SCENE_DATA_MAX_MOBS];
-float mobsTimeInCurrentPath[SCENE_DATA_MAX_MOBS];
+static int mobsHealth[SCENE_DATA_MAX_MOBS];
+static MobType mobsTypes[SCENE_DATA_MAX_MOBS];
+static int mobsWaveIndex[SCENE_DATA_MAX_MOBS];
+static Vector2 mobsPosition[SCENE_DATA_MAX_MOBS];
+static MobStatus mobsStatus[SCENE_DATA_MAX_MOBS];
+static int mobsTargetWaypointIndex[SCENE_DATA_MAX_MOBS];
+static float mobsTimeInCurrentPath[SCENE_DATA_MAX_MOBS];
 // Tiles that it crosses in one second
-float mobsMovementSpeed[SCENE_DATA_MAX_MOBS];
-StatusEffectTimer mobsModifiersTimers[SCENE_DATA_MAX_MOBS][SCENE_DATA_MAX_MOB_STAT_MODS];
+static float mobsMovementSpeed[SCENE_DATA_MAX_MOBS];
+static StatusEffectTimer mobsModifiersTimers[SCENE_DATA_MAX_MOBS][SCENE_DATA_MAX_MOB_STAT_MODS];
 
-int totalMobsCount = 0;
+static int totalMobsCount = 0;
 
-float spawnCooldownSeconds = 0.6f;
+static float spawnCooldownSeconds = 0.6f;
 
 typedef enum {
     WAVE_STATUS_NOT_STARTED,
@@ -58,12 +58,12 @@ typedef enum {
     WAVE_STATUS_ENDED,
 } WaveStatus;
 
-WaveStatus wavesStatus[SCENE_DATA_MAX_WAVES];
-float wavesSpawnTimers[SCENE_DATA_MAX_WAVES];
-float wavesStartTimer[SCENE_DATA_MAX_WAVES];
-float wavesMobsRemainingToSpawn[SCENE_DATA_MAX_WAVES];
+static WaveStatus wavesStatus[SCENE_DATA_MAX_WAVES];
+static float wavesSpawnTimers[SCENE_DATA_MAX_WAVES];
+static float wavesStartTimer[SCENE_DATA_MAX_WAVES];
+static float wavesMobsRemainingToSpawn[SCENE_DATA_MAX_WAVES];
 
-void drawMobs() {
+static void drawMobs() {
     char buffer[16];
 
     for (int i = 0; i < totalMobsCount; i++) {
@@ -110,7 +110,7 @@ void drawMobs() {
     }
 }
 
-float getPathTime(int waypointIndex, float movementSpeed) {
+static float getPathTime(int waypointIndex, float movementSpeed) {
     if (waypointIndex == 0)
         return 0;
 
@@ -125,7 +125,7 @@ float getPathTime(int waypointIndex, float movementSpeed) {
     return pathTime;
 }
 
-float applyEffectsToValue(int mobIndex, float value, StatusEffectType effectType) {
+static float applyEffectsToValue(int mobIndex, float value, StatusEffectType effectType) {
     float newValue = value;
 
     StatusEffectTimer *timers = mobsModifiersTimers[mobIndex];

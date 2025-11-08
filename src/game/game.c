@@ -6,11 +6,10 @@
 #include "./scene/scene.h"
 #include "gameplay.h"
 #include <raylib.h>
+#include <raymath.h>
 #include <stdbool.h>
 
-#define GAME_VIEW_WIDTH 1920
-
-static RenderTexture2D target;
+static RenderTexture2D target = {0};
 
 static bool paused = false;
 
@@ -96,3 +95,19 @@ const Texture *const game_Render(Game *game) {
 
     return &target.texture;
 }
+
+#ifdef ENABLE_EDITOR
+Vector2 game_ToScreen(const Game *game, Vector2 game_pos) {
+    return (Vector2){
+        game_pos.x * game->scale,
+        game_pos.y * game->scale,
+    };
+}
+
+Vector2 game_ToGame(const Game *game, Vector2 screen_point) {
+    return (Vector2){
+        screen_point.x / game->scale,
+        screen_point.y / game->scale,
+    };
+}
+#endif
