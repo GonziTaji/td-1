@@ -260,7 +260,7 @@ void towers_handleInput() {
     if (input.mouseButtonState[MOUSE_BUTTON_LEFT] == MOUSE_BUTTON_STATE_PRESSED) {
         V2i coords = grid_worldPointToCoords(SCENE_TRANSFORM, input.worldMousePos.x, input.worldMousePos.y);
 
-        if (grid_isValidCoords(SCENE_DATA->cols, SCENE_DATA->rows, coords.x, coords.y)) {
+        if (grid_isValidCoords(SCENE_DATA->cols, SCENE_DATA->rows, coords)) {
             switch (gameplayMode) {
             case GAMEPLAY_MODE_NORMAL:
                 tower_selected_idx = GetTowerIndexFromCoords(coords);
@@ -498,7 +498,7 @@ static void drawTowerToPlace() {
     Vector2 m = input.worldMousePos;
     V2i coords = grid_worldPointToCoords(SCENE_TRANSFORM, m.x, m.y);
 
-    if (grid_isValidCoords(SCENE_DATA->cols, SCENE_DATA->rows, coords.x, coords.y)) {
+    if (grid_isValidCoords(SCENE_DATA->cols, SCENE_DATA->rows, coords)) {
         Vector2 tileCenter = grid_getTileCenter(SCENE_TRANSFORM, coords.x, coords.y);
         drawTower(tower_to_place_data_idx, tileCenter, false);
 

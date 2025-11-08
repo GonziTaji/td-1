@@ -45,8 +45,7 @@ void scene_init(int sceneIndex) {
 void scene_handleInput() {
     V2i hoveredCoords = grid_worldPointToCoords(SCENE_TRANSFORM, input.worldMousePos.x, input.worldMousePos.y);
 
-    hoveredTileIndex
-        = grid_getTileIndexFromCoords(SCENE_DATA->cols, SCENE_DATA->rows, hoveredCoords.x, hoveredCoords.y);
+    hoveredTileIndex = grid_getTileIndexFromCoords(SCENE_DATA->cols, SCENE_DATA->rows, hoveredCoords);
 
     if (input.keyPressed == KEY_SPACE) {
         wave_startNext();

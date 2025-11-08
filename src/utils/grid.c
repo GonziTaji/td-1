@@ -3,8 +3,8 @@
 #include "utils.h"
 #include <assert.h>
 
-bool grid_isValidCoords(int gridCols, int gridRows, float x, float y) {
-    if (x < 0 || y < 0 || x >= gridCols || y >= gridRows) {
+bool grid_isValidCoords(int gridCols, int gridRows, V2i coords) {
+    if (coords.x < 0 || coords.y < 0 || coords.x >= gridCols || coords.y >= gridRows) {
         return false;
     }
 
@@ -18,13 +18,13 @@ V2i grid_getCoordsFromTileIndex(int gridCols, int i) {
 }
 
 /// Returns -1 if the coords are not a valid cell of the grid
-int grid_getTileIndexFromCoords(int gridCols, int gridRows, int x, int y) {
+int grid_getTileIndexFromCoords(int gridCols, int gridRows, V2i coords) {
     // get this out and use it when it's really necesary? to avoid gridRows as function parameter
-    if (!grid_isValidCoords(gridCols, gridRows, x, y)) {
+    if (!grid_isValidCoords(gridCols, gridRows, coords)) {
         return -1;
     }
 
-    return ((int)y * gridCols) + (int)x;
+    return (coords.y * gridCols) + coords.x;
 }
 
 V2i grid_worldPointToCoords(const Transform2D *transform, float x, float y) {

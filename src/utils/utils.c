@@ -16,11 +16,25 @@ float utils_clampf(float min, float max, float value) {
     return value;
 }
 
-bool utils_checkCollisionPointEllipse(
-    Vector2 point, Vector2 ellipseCenter, float ellipseRadiusX, float ellipseRadiusY) {
+bool utils_checkCollisionPointEllipse(Vector2 point,
+    Vector2 ellipseCenter,
+    float ellipseRadiusX,
+    float ellipseRadiusY) {
 
     float term1 = powf(point.x - ellipseCenter.x, 2) / powf(ellipseRadiusX, 2);
     float term2 = powf(point.y - ellipseCenter.y, 2) / powf(ellipseRadiusY, 2);
 
     return (term1 + term2 <= 1.0f);
+}
+
+Rectangle Vector2ToRec(Vector2 pos, Vector2 size) {
+    return (Rectangle){pos.x, pos.y, size.x, size.y};
+}
+
+Vector2 RectangleGetPosition(Rectangle rec) {
+    return (Vector2){rec.x, rec.y};
+}
+
+Vector2 RectangleGetSize(Rectangle rec) {
+    return (Vector2){rec.width, rec.height};
 }

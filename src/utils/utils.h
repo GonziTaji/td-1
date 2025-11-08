@@ -35,7 +35,11 @@ typedef struct {
 // math
 float utils_clampf(float min, float max, float value);
 
-bool utils_checkCollisionPointEllipse(Vector2 point,
-    Vector2 ellipseCenter,
-    float ellipseRadiusX,
-    float ellipseRadiusY);
+bool utils_checkCollisionPointEllipse(Vector2 point, Vector2 ellipseCenter, float ellipseRadiusX, float ellipseRadiusY);
+
+// vector utils
+Rectangle Vector2ToRec(Vector2 pos, Vector2 size);
+
+// rectangle utils
+Vector2 RectangleGetPosition(Rectangle rec);
+Vector2 RectangleGetSize(Rectangle rec);

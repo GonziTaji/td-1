@@ -90,7 +90,11 @@ static void parseSceneFile(const char *path) {
     fclose(f);
 }
 
+static int current_scene;
+
 void scene_data_load(int sceneIndex) {
+    current_scene = sceneIndex;
+
     strncpy(data.name, "", sizeof(data.name));
 
     data.cols = 0;
@@ -114,3 +118,82 @@ void scene_data_load(int sceneIndex) {
 
     parseSceneFile(path);
 }
+
+#if ENABLE_EDITOR
+
+void scene_data_ReloadCurrentScene() {
+    scene_data_load(current_scene);
+}
+
+void scene_data_RemoveLastWaypoint() {
+    data.pathWaypointsCount--;
+}
+
+bool scene_data_WaypointCanBeSet(V2i new_waypoint) {
+    if (data.pathWaypointsCount == SCENE_DATA_MAX_WAYPOINTS) {
+        // TODO: return something else like an enum to indicate max reached?
+        return false;
+    }
+
+    V2i *last_path_end = &data.pathWaypoints[data.pathWaypointsCount - 1];
+
+    const bool same_x_end = last_path_end->x == new_waypoint.x;
+    const bool same_y_end = last_path_end->y == new_waypoint.y;
+
+    if (!same_x_end && !same_y_end) {
+        // It has to be a straight line
+        return false;
+    }
+
+    if (same_x_end && same_y_end) {
+        // It cannot be the same as the last waypoint
+        return false;
+    }
+
+    V2i *last_path_start = &data.pathWaypoints[data.pathWaypointsCount - 2];
+
+    const bool path_in_x_axis = last_path_start->x == last_path_end->x;
+    const bool path_in_y_axis = last_path_start->y == last_path_end->y;
+
+    // It cannot be a straight line towards the last path's start
+    if (same_x_end && path_in_x_axis) {
+        if (last_path_end->y > last_path_start->y && last_path_end->y > new_waypoint.y) {
+            return false;
+        }
+
+        if (last_path_end->y < last_path_start->y && last_path_end->y < new_waypoint.y) {
+            return false;
+        }
+    }
+
+    // It cannot be a straight line towards the last path's start
+    if (same_y_end && path_in_y_axis) {
+        if (last_path_end->x > last_path_start->x && last_path_end->x > new_waypoint.x) {
+            return false;
+        }
+
+        if (last_path_end->x < last_path_start->x && last_path_end->x < new_waypoint.x) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool scene_data_AddWaypoint(V2i new_waypoint) {
+    if (!scene_data_WaypointCanBeSet(new_waypoint)) {
+        return false;
+    }
+
+    data.pathWaypoints[data.pathWaypointsCount] = new_waypoint;
+    data.pathWaypointsCount++;
+
+    return true;
+}
+
+void scene_data_ChangeGridDimensions(int cols, int rows) {
+    data.cols = cols;
+    data.rows = rows;
+}
+
+#endif

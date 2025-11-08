@@ -1,5 +1,6 @@
 #include "editor_ui.h"
 #include "../core/asset_manager.h"
+#include "../utils/utils.h"
 #include <assert.h>
 #include <endian.h>
 #include <raylib.h>
@@ -7,6 +8,18 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+
+#define EDITOR_UI_MAX_PANEL_NODES 32
+#define EDITOR_UI_BUTTON_MIN_WIDTH 300
+
+// colors
+const Color color_text = {239, 241, 243, 255};
+const Color color_panel_bg = {1, 17, 10, 255};
+const Color color_separator_bg = {105, 103, 115, 255};
+const Color color_button_bg = {39, 38, 44, 255};
+const Color color_button_border = {105, 103, 115, 255};
+
+static const int button_padding = 5;
 
 typedef struct {
     int font_size;
@@ -48,12 +61,14 @@ static UIPanel panel = {0};
 static Vector2 cursor_initial_pos = {0};
 static Vector2 cursor_current_pos = {0};
 
-static bool isStarted = false;
+static bool is_started = false;
+static bool active_node_found = false;
 
 void ui_StartPanel(Vector2 position, UILayout layout) {
-    assert(!isStarted && "Panel already started");
+    assert(!is_started && "Panel already started");
 
-    isStarted = true;
+    is_started = true;
+    active_node_found = false;
     panel = (UIPanel){0};
     panel.bounds = (Rectangle){position.x, position.y, layout.padding * 2, layout.padding * 2};
     panel.layout = layout;
@@ -74,8 +89,62 @@ static void AddGapIfNeeded() {
 }
 
 static void AssertNodeCanBeAdded() {
-    assert(isStarted && "Panel must be started to add a node");
+    assert(is_started && "Panel must be started to add a node");
     assert(panel.nodes_count < EDITOR_UI_MAX_PANEL_NODES && "Number of ui nodes in a panel exceeded");
+}
+
+IsActive ui_AddButton(char *text, int font_size) {
+    AssertNodeCanBeAdded();
+
+    AddGapIfNeeded();
+
+    UINode *const node = &panel.nodes[panel.nodes_count];
+
+    node->type = NODE_TYPE_BUTTON;
+    node->text_box.font_size = font_size;
+    memcpy(node->text_box.text, text, EDITOR_UI_MAX_CHARS_TEXT_NODE);
+
+    Vector2 dimensions = MeasureTextEx(uiFont, node->text_box.text, font_size, 0);
+    dimensions = Vector2AddValue(dimensions, button_padding * 2);
+
+    if (dimensions.x < EDITOR_UI_BUTTON_MIN_WIDTH) {
+        dimensions.x = EDITOR_UI_BUTTON_MIN_WIDTH;
+    }
+
+    node->aabb.x = cursor_current_pos.x;
+    node->aabb.y = cursor_current_pos.y;
+    node->aabb.width = dimensions.x;
+    node->aabb.height = dimensions.y;
+
+    panel.nodes_count++;
+
+    const int double_padding = panel.layout.padding * 2;
+
+    if (panel.layout.direction == LAYOUT_DIR_COL) {
+        cursor_current_pos.y += node->aabb.height;
+
+        float total_node_width = node->aabb.width + double_padding;
+        if (panel.bounds.width < total_node_width) {
+            panel.bounds.width = total_node_width;
+        }
+    } else {
+        cursor_current_pos.x += node->aabb.width;
+
+        float total_node_height = node->aabb.height + double_padding;
+        if (panel.bounds.height < total_node_height) {
+            panel.bounds.height = total_node_height;
+        }
+    }
+
+    // Only detect one click per frame
+    if (active_node_found == false && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
+        && CheckCollisionPointRec(GetMousePosition(), node->aabb)) {
+
+        active_node_found = true;
+        return true;
+    }
+
+    return false;
 }
 
 void ui_AddSeparator(int thickness) {
@@ -144,8 +213,9 @@ void ui_AddTextNode(char *text, int font_size) {
     panel.nodes_count++;
 }
 
-void ui_EndPanel() {
-    assert(isStarted && "Panel must be started to end it");
+/// returns final panel bounds
+Rectangle ui_EndPanel() {
+    assert(is_started && "Panel must be started to end it");
 
     Rectangle panel_rec = panel.bounds;
 
@@ -157,7 +227,7 @@ void ui_EndPanel() {
         panel_rec.width = cursor_delta.x + (panel.layout.padding * 2);
     }
 
-    DrawRectangleRec(panel_rec, GRAY);
+    DrawRectangleRec(panel_rec, color_panel_bg);
 
     for (int i = 0; i < panel.nodes_count; i++) {
         UINode *const node = &panel.nodes[i];
@@ -169,7 +239,7 @@ void ui_EndPanel() {
             } else {
                 node->aabb.height = panel_rec.height - (panel.layout.padding * 2);
             }
-            DrawRectangleRec(node->aabb, DARKGRAY);
+            DrawRectangleRec(node->aabb, color_separator_bg);
             break;
 
         case NODE_TYPE_TEXT:
@@ -178,17 +248,30 @@ void ui_EndPanel() {
                 (Vector2){node->aabb.x, node->aabb.y},
                 node->text_box.font_size,
                 0,
-                WHITE);
+                color_text);
 
             break;
 
         case NODE_TYPE_BUTTON:
+            DrawRectangleRec(node->aabb, color_button_bg);
+            DrawRectangleLinesEx(node->aabb, 2, color_button_border);
+
+            // TODO: handle hovering
+
+            DrawTextEx(uiFont,
+                node->text_box.text,
+                Vector2AddValue((Vector2){node->aabb.x, node->aabb.y}, button_padding),
+                node->text_box.font_size,
+                0,
+                color_text);
             break;
         }
 
+        // Debug info
+        // Activate/deactivate?
+
         const bool hovered = CheckCollisionPointRec(GetMousePosition(), node->aabb);
 
-        // Activate/deactivate?
         if (hovered || (IsKeyDown(KEY_B) && (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)))) {
             DrawRectangleLinesEx(node->aabb, 2, GREEN);
         }
@@ -196,10 +279,10 @@ void ui_EndPanel() {
         if (hovered) {
             const Vector2 tooltip_size = {90, 60};
             const int tooltip_margin = 5;
-            const int tooltip_padding = 5;
+            const int tooltip_padding = 10;
 
             Vector2 tooltip_cursor = {
-                node->aabb.x,
+                node->aabb.x + tooltip_margin,
                 node->aabb.y - tooltip_size.y - tooltip_margin,
             };
 
@@ -208,6 +291,7 @@ void ui_EndPanel() {
             }
 
             DrawRectangleV(tooltip_cursor, tooltip_size, BLACK);
+            DrawRectangleLinesEx(Vector2ToRec(tooltip_cursor, tooltip_size), 2, GRAY);
 
             tooltip_cursor.x += tooltip_padding;
             tooltip_cursor.y += tooltip_padding;
@@ -223,5 +307,7 @@ void ui_EndPanel() {
         }
     }
 
-    isStarted = false;
+    is_started = false;
+
+    return panel_rec;
 }

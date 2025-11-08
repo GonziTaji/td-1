@@ -13,11 +13,11 @@ typedef struct {
     int tileCount;
 } TileGrid;
 
-bool grid_isValidCoords(int gridCols, int gridRows, float x, float y);
+bool grid_isValidCoords(int gridCols, int gridRows, V2i coords);
 
 V2i grid_getCoordsFromTileIndex(int gridCols, int i);
 
-int grid_getTileIndexFromCoords(int gridCols, int gridRows, int x, int y);
+int grid_getTileIndexFromCoords(int gridCols, int gridRows, V2i coords);
 
 V2i grid_worldPointToCoords(const Transform2D *transform, float x, float y);
 

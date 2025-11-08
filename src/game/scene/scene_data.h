@@ -34,3 +34,13 @@ typedef struct {
 extern const SceneData *const SCENE_DATA;
 
 void scene_data_load(int sceneIndex);
+
+#ifdef ENABLE_EDITOR
+
+void scene_data_ReloadCurrentScene();
+void scene_data_RemoveLastWaypoint();
+bool scene_data_WaypointCanBeSet(V2i new_waypoint);
+bool scene_data_AddWaypoint(V2i new_waypoint);
+void scene_data_ChangeGridDimensions(int cols, int rows);
+
+#endif
