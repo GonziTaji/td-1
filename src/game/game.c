@@ -15,15 +15,26 @@ static RenderTexture2D target;
 static bool paused = false;
 
 static void calculateGameView(Game *game) {
-    game->scale = (float)GetScreenWidth() / GAME_VIEW_WIDTH;
+    float new_scale = (float)GetScreenWidth() / GAME_VIEW_WIDTH;
+
+    Vector2 new_dimensions = (Vector2){GetScreenWidth() / new_scale, GetScreenHeight() / new_scale};
+
+    if (game->scale == new_scale && target.texture.width == new_dimensions.x
+        && target.texture.height == new_dimensions.y) {
+
+        return;
+    }
+
+    game->scale = new_scale;
 
     UnloadRenderTexture(target);
-    target = LoadRenderTexture(GetScreenWidth() / game->scale, GetScreenHeight() / game->scale);
+    target = LoadRenderTexture(new_dimensions.x, new_dimensions.y);
     SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR);
 }
 
 void game_init(Game *game) {
     game->gameplaySpeed = GAMEPLAY_SPEED_NORMAL;
+    game->scale = 0;
 
     scene_init(1);
 
