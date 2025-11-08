@@ -7,10 +7,12 @@
 #include <raymath.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define EDITOR_UI_MAX_PANEL_NODES 128
 #define EDITOR_UI_BUTTON_MIN_WIDTH 100
+#define EDITOR_UI_MAX_CHARS_INPUT_NODE 32
 
 static bool show_ui_debug = false;
 
@@ -21,8 +23,22 @@ const Color color_separator_bg = {105, 103, 115, 255};
 const Color color_button_bg = {39, 38, 44, 255};
 const Color color_button_border = {105, 103, 115, 255};
 const Color color_button_border_hover = WHITE;
+const Color color_input_bg = {0, 0, 0, 0};
+const Color color_input_border = {105, 103, 115, 255};
+const Color color_input_border_active = WHITE;
 
+// spacing
 static const int button_padding = 5;
+static const int input_padding = 5;
+
+// other
+static const int input_width = 80;
+
+typedef struct {
+    int font_size;
+    bool active;
+    char text[EDITOR_UI_MAX_CHARS_INPUT_NODE];
+} UIInputNode;
 
 typedef struct {
     int font_size;
@@ -47,6 +63,7 @@ typedef struct {
         NODE_TYPE_TEXT,
         NODE_TYPE_BUTTON,
         NODE_TYPE_TOOL_BAR, // group of horizontal buttons
+        NODE_TYPE_INPUT,
         NODE_TYPE_SEPARATOR,
     } type;
 
@@ -58,6 +75,7 @@ typedef struct {
         UITextNode text_box;
         UIButtonNode button;
         UIToolbarNode toolbar;
+        UIInputNode input;
     };
 } UINode;
 
@@ -104,6 +122,90 @@ static void AddGapIfNeeded() {
 static void AssertNodeCanBeAdded() {
     assert(is_started && "Panel must be started to add a node");
     assert(panel.nodes_count < EDITOR_UI_MAX_PANEL_NODES && "Number of ui nodes in a panel exceeded");
+}
+
+/// numeric input
+IsActive ui_AddValueBox(int *value, int font_size, bool is_edit_mode) {
+    AssertNodeCanBeAdded();
+    AddGapIfNeeded();
+
+    UINode *const node = &panel.nodes[panel.nodes_count];
+
+    node->type = NODE_TYPE_INPUT;
+    node->input.font_size = font_size;
+
+    char text_value[EDITOR_UI_MAX_CHARS_INPUT_NODE] = "";
+    snprintf(text_value, EDITOR_UI_MAX_CHARS_INPUT_NODE, "%i", *value);
+    int key_count = (int)strlen(text_value);
+
+    memcpy(node->input.text, text_value, EDITOR_UI_MAX_CHARS_INPUT_NODE);
+
+    node->aabb.height = MeasureTextEx(uiFont, node->input.text, font_size, 0).y;
+    node->aabb.height += input_padding * 2;
+    node->input.active = is_edit_mode;
+
+    node->aabb.x = cursor_current_pos.x;
+    node->aabb.y = cursor_current_pos.y;
+    node->aabb.width = input_width;
+
+    panel.nodes_count++;
+
+    const int double_padding = panel.layout.padding * 2;
+
+    if (panel.layout.direction == LAYOUT_DIR_COL) {
+        cursor_current_pos.y += node->aabb.height;
+
+        float total_node_width = node->aabb.width + double_padding;
+        if (panel.bounds.width < total_node_width) {
+            panel.bounds.width = total_node_width;
+        }
+    } else {
+        cursor_current_pos.x += node->aabb.width;
+
+        float total_node_height = node->aabb.height + double_padding;
+        if (panel.bounds.height < total_node_height) {
+            panel.bounds.height = total_node_height;
+        }
+    }
+
+    if (is_edit_mode) {
+        bool value_has_changed = false;
+
+        // Only allow keys in range [48..57] (numbers)
+        if (key_count < EDITOR_UI_MAX_CHARS_INPUT_NODE) {
+            const float text_width = MeasureTextEx(uiFont, text_value, font_size, 0).x;
+
+            if (text_width < node->aabb.width - (input_padding * 2)) {
+                int key = GetCharPressed();
+                if ((key >= 48) && (key <= 57)) {
+                    text_value[key_count] = (char)key;
+                    key_count++;
+                    value_has_changed = true;
+                }
+            }
+        }
+
+        // Delete text
+        if (key_count > 0 && IsKeyPressed(KEY_BACKSPACE)) {
+            key_count--;
+            text_value[key_count] = '\0';
+            value_has_changed = true;
+        }
+
+        if (value_has_changed) {
+            *value = atoi(text_value);
+        }
+    }
+
+    // Only detect one click per frame
+    if (active_node_found == false && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
+        && CheckCollisionPointRec(GetMousePosition(), node->aabb)) {
+
+        active_node_found = true;
+        return true;
+    }
+
+    return false;
 }
 
 int ui_AddToolbar(int button_count, char **labels, int font_size) {
@@ -303,6 +405,9 @@ Rectangle ui_EndPanel() {
 
     DrawRectangleRec(panel_rec, color_panel_bg);
 
+    bool hovered = false;
+    Vector2 text_pos = {0};
+
     for (int i = 0; i < panel.nodes_count; i++) {
         UINode *const node = &panel.nodes[i];
 
@@ -329,18 +434,13 @@ Rectangle ui_EndPanel() {
         case NODE_TYPE_BUTTON:
             DrawRectangleRec(node->aabb, color_button_bg);
 
-            const bool hovered = CheckCollisionPointRec(GetMousePosition(), node->aabb);
+            hovered = CheckCollisionPointRec(GetMousePosition(), node->aabb);
 
             DrawRectangleLinesEx(node->aabb, 2, hovered ? color_button_border_hover : color_button_border);
 
-            // TODO: handle hovering
+            text_pos = Vector2AddValue((Vector2){node->aabb.x, node->aabb.y}, input_padding);
 
-            DrawTextEx(uiFont,
-                node->text_box.text,
-                Vector2AddValue((Vector2){node->aabb.x, node->aabb.y}, button_padding),
-                node->text_box.font_size,
-                0,
-                color_text);
+            DrawTextEx(uiFont, node->text_box.text, text_pos, node->text_box.font_size, 0, color_text);
             break;
 
         case NODE_TYPE_TOOL_BAR:
@@ -348,20 +448,32 @@ Rectangle ui_EndPanel() {
                 Rectangle button_rec = node->toolbar.buttons_aabb[i];
 
                 DrawRectangleRec(button_rec, color_button_bg);
-                const bool hovered = CheckCollisionPointRec(GetMousePosition(), button_rec);
+                hovered = CheckCollisionPointRec(GetMousePosition(), button_rec);
 
                 DrawRectangleLinesEx(button_rec, 2, hovered ? color_button_border_hover : color_button_border);
 
-                Vector2 text_pos = Vector2AddValue(RectangleGetPosition(button_rec), button_padding);
+                text_pos = Vector2AddValue(RectangleGetPosition(button_rec), button_padding);
 
                 DrawTextEx(uiFont, node->toolbar.labels[i], text_pos, node->toolbar.font_size, 0, color_text);
             }
 
             break;
+
+        case NODE_TYPE_INPUT:
+            DrawRectangleRec(node->aabb, color_input_bg);
+
+            hovered = CheckCollisionPointRec(GetMousePosition(), node->aabb);
+
+            DrawRectangleLinesEx(node->aabb, 2, node->input.active ? color_input_border_active : color_input_border);
+
+            text_pos = Vector2AddValue((Vector2){node->aabb.x, node->aabb.y}, input_padding);
+
+            DrawTextEx(uiFont, node->input.text, text_pos, node->input.font_size, 0, color_text);
+            break;
         }
 
         if (show_ui_debug) {
-            const bool hovered = CheckCollisionPointRec(GetMousePosition(), node->aabb);
+            hovered = CheckCollisionPointRec(GetMousePosition(), node->aabb);
 
             if (hovered || (IsKeyDown(KEY_B) && (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)))) {
                 DrawRectangleLinesEx(node->aabb, 2, GREEN);

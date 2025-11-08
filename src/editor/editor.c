@@ -21,8 +21,12 @@
 
 static struct {
     bool show_scene_panel;
+    int test_number;
+    int active_input_id;
 } state = {
     .show_scene_panel = true,
+    .test_number = 0,
+    .active_input_id = -1,
 };
 
 typedef enum {
@@ -46,10 +50,12 @@ static const struct {
     int title;
     int text;
     int button;
+    int input;
 } font_sizes = {
     .title = 24,
     .text = 16,
     .button = 16,
+    .input = 16,
 };
 
 static void DrawPathPanel() {
@@ -219,6 +225,12 @@ static void DrawPathPanel() {
         ui_AddTextNode(buffer, font_sizes.text);
     } else {
         ui_AddTextNode("Hovered coords: NONE", font_sizes.text);
+    }
+
+    if (ui_AddValueBox(&state.test_number, font_sizes.input, state.active_input_id == 1)) {
+        state.active_input_id = 1;
+    } else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+        state.active_input_id = 0;
     }
 
     ui_EndPanel();
