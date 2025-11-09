@@ -23,4 +23,4 @@ void ui_AddTextNode(char *text, int font_size);
 void ui_AddSeparator(int thickness);
 IsActive ui_AddButton(char *text, int font_size);
 int ui_AddToolbar(int button_count, char **labels, int font_size);
-IsActive ui_AddValueBox(int *value, int font_size, bool is_edit_mode);
+IsActive ui_AddValueBox(char *label, int *value, int font_size, bool is_edit_mode);

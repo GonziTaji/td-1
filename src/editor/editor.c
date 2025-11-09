@@ -19,6 +19,12 @@
  *
  */
 
+typedef struct {
+    int id;
+    char *label;
+    int *value;
+} InputData;
+
 static struct {
     bool show_scene_panel;
     int test_number;
@@ -41,6 +47,11 @@ int wave_editor_wave_idx = 0;
 void editor_Update(float delta_time) {
     if (IsKeyPressed(KEY_U)) {
         state.show_scene_panel = !state.show_scene_panel;
+    }
+
+    // Reset focus for this frame if /anything/ was clicked
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        state.active_input_id = 0;
     }
 }
 
@@ -85,7 +96,14 @@ static void DrawPathPanel() {
     ui_AddTextNode(buffer, font_sizes.title);
     ui_AddSeparator(3);
 
-    int action = ui_AddToolbar(4, (char *[]){"+ COL", "- COL", "+ ROW", "- ROW"}, font_sizes.button);
+    int action = ui_AddToolbar(4,
+        (char *[]){
+            "+ COL",
+            "- COL",
+            "+ ROW",
+            "- ROW",
+        },
+        font_sizes.button);
 
     switch (action) {
     case 0:
@@ -190,16 +208,23 @@ static void DrawPathPanel() {
     snprintf(buffer, sizeof(buffer), "Wave %d of %d:", wave_editor_wave_idx + 1, SCENE_DATA->wavesCount);
     ui_AddTextNode(buffer, font_sizes.text);
 
-    const WaveData *wave = &SCENE_DATA->waves[wave_editor_wave_idx];
+    WaveData *wave = scene_data_GetMutableWave(wave_editor_wave_idx);
 
-    snprintf(buffer, sizeof(buffer), "Start delay %d:", wave->startDelaySeconds);
-    ui_AddTextNode(buffer, font_sizes.text);
+    InputData wave_inputs[] = {
+        {1, "Start delay", &wave->startDelaySeconds},
+        {2, "Mob type", (int *)&wave->mobType},
+        {3, "Mobs quantity", &wave->mobsCount},
+    };
 
-    snprintf(buffer, sizeof(buffer), "Mob type %d:", wave->mobType);
-    ui_AddTextNode(buffer, font_sizes.text);
+    const int wave_values_count = sizeof(wave_inputs) / sizeof(InputData);
 
-    snprintf(buffer, sizeof(buffer), "Mobs count %d:", wave->mobsCount);
-    ui_AddTextNode(buffer, font_sizes.text);
+    for (int i = 0; i < wave_values_count; i++) {
+        const InputData *input = &wave_inputs[i];
+
+        if (ui_AddValueBox(input->label, input->value, font_sizes.input, state.active_input_id == input->id)) {
+            state.active_input_id = input->id;
+        }
+    }
 
     //
     // NEW PANNEL
@@ -225,12 +250,6 @@ static void DrawPathPanel() {
         ui_AddTextNode(buffer, font_sizes.text);
     } else {
         ui_AddTextNode("Hovered coords: NONE", font_sizes.text);
-    }
-
-    if (ui_AddValueBox(&state.test_number, font_sizes.input, state.active_input_id == 1)) {
-        state.active_input_id = 1;
-    } else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-        state.active_input_id = 0;
     }
 
     ui_EndPanel();

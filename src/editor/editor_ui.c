@@ -13,6 +13,7 @@
 #define EDITOR_UI_MAX_PANEL_NODES 128
 #define EDITOR_UI_BUTTON_MIN_WIDTH 100
 #define EDITOR_UI_MAX_CHARS_INPUT_NODE 32
+#define EDITOR_UI_MAX_CHARS_INPUT_LABEL 32
 
 static bool show_ui_debug = false;
 
@@ -30,14 +31,17 @@ const Color color_input_border_active = WHITE;
 // spacing
 static const int button_padding = 5;
 static const int input_padding = 5;
+static const int input_label_padding = 5;
 
 // other
-static const int input_width = 80;
+static const int input_width = 50;
 
 typedef struct {
     int font_size;
     bool active;
-    char text[EDITOR_UI_MAX_CHARS_INPUT_NODE];
+    char text_value[EDITOR_UI_MAX_CHARS_INPUT_NODE];
+    char label[EDITOR_UI_MAX_CHARS_INPUT_LABEL];
+    float label_width;
 } UIInputNode;
 
 typedef struct {
@@ -125,28 +129,38 @@ static void AssertNodeCanBeAdded() {
 }
 
 /// numeric input
-IsActive ui_AddValueBox(int *value, int font_size, bool is_edit_mode) {
+/// give a 0-length label for no label
+IsActive ui_AddValueBox(char *label, int *value, int font_size, bool is_edit_mode) {
     AssertNodeCanBeAdded();
     AddGapIfNeeded();
 
     UINode *const node = &panel.nodes[panel.nodes_count];
 
-    node->type = NODE_TYPE_INPUT;
-    node->input.font_size = font_size;
-
     char text_value[EDITOR_UI_MAX_CHARS_INPUT_NODE] = "";
     snprintf(text_value, EDITOR_UI_MAX_CHARS_INPUT_NODE, "%i", *value);
     int key_count = (int)strlen(text_value);
 
-    memcpy(node->input.text, text_value, EDITOR_UI_MAX_CHARS_INPUT_NODE);
+    memcpy(node->input.text_value, text_value, EDITOR_UI_MAX_CHARS_INPUT_NODE);
 
-    node->aabb.height = MeasureTextEx(uiFont, node->input.text, font_size, 0).y;
+    node->type = NODE_TYPE_INPUT;
+    node->input.font_size = font_size;
+
+    node->aabb.width = input_width;
+    node->aabb.height = MeasureTextEx(uiFont, node->input.text_value, font_size, 0).y;
     node->aabb.height += input_padding * 2;
     node->input.active = is_edit_mode;
 
     node->aabb.x = cursor_current_pos.x;
     node->aabb.y = cursor_current_pos.y;
-    node->aabb.width = input_width;
+
+    if ((int)strlen(label) > 0) {
+        memcpy(node->input.label, label, EDITOR_UI_MAX_CHARS_INPUT_LABEL);
+        node->input.label_width = MeasureTextEx(uiFont, node->input.label, font_size, 0).x + input_label_padding;
+
+        node->aabb.width += node->input.label_width;
+    } else {
+        node->input.label_width = 0;
+    }
 
     panel.nodes_count++;
 
@@ -244,7 +258,10 @@ int ui_AddToolbar(int button_count, char **labels, int font_size) {
             active_button_idx = i;
         }
 
-        toolbar_cursor.x += node->toolbar.buttons_aabb[i].width + node->toolbar.gap;
+        toolbar_cursor.x += node->toolbar.buttons_aabb[i].width;
+        if (i != button_count - 1) {
+            toolbar_cursor.x += node->toolbar.gap;
+        }
     }
 
     node->aabb.width = toolbar_cursor.x - node->aabb.x;
@@ -459,17 +476,34 @@ Rectangle ui_EndPanel() {
 
             break;
 
-        case NODE_TYPE_INPUT:
-            DrawRectangleRec(node->aabb, color_input_bg);
+        case NODE_TYPE_INPUT: {
+            Vector2 input_node_cursor = RectangleGetPosition(node->aabb);
+            Rectangle input_box_aabb = node->aabb;
+
+            if (node->input.label_width > 0) {
+                Vector2 label_pos = input_node_cursor;
+                label_pos.y += input_padding;
+
+                DrawTextEx(uiFont, node->input.label, label_pos, node->input.font_size, 0, color_text);
+
+                input_node_cursor.x += node->input.label_width;
+                input_box_aabb.x += node->input.label_width;
+                input_box_aabb.width -= node->input.label_width;
+            }
+
+            DrawRectangleRec(input_box_aabb, color_input_bg);
 
             hovered = CheckCollisionPointRec(GetMousePosition(), node->aabb);
 
-            DrawRectangleLinesEx(node->aabb, 2, node->input.active ? color_input_border_active : color_input_border);
+            const Color border_color = node->input.active ? color_input_border_active : color_input_border;
 
-            text_pos = Vector2AddValue((Vector2){node->aabb.x, node->aabb.y}, input_padding);
+            DrawRectangleLinesEx(input_box_aabb, 2, border_color);
 
-            DrawTextEx(uiFont, node->input.text, text_pos, node->input.font_size, 0, color_text);
+            text_pos = Vector2AddValue((Vector2){input_box_aabb.x, input_box_aabb.y}, input_padding);
+
+            DrawTextEx(uiFont, node->input.text_value, text_pos, node->input.font_size, 0, color_text);
             break;
+        }
         }
 
         if (show_ui_debug) {

@@ -200,6 +200,12 @@ void scene_data_ChangeGridDimensions(int cols, int rows) {
 }
 
 // Scene wave functions
+WaveData *scene_data_GetMutableWave(int wave_index) {
+    assert(wave_index < data.wavesCount && "wave_index out of bounds");
+
+    return &data.waves[wave_index];
+}
+
 void scene_data_AddWave(float start_delay, int mob_count, MobType mob_type) {
     data.waves[data.wavesCount] = (WaveData){
         .mobsCount = mob_count,
