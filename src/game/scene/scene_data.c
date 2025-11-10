@@ -8,6 +8,7 @@
 #define SCENE_DATA_MAX_FILE_PATH SCENE_DATA_NAME_MAX_LENGTH + sizeof(SCENE_DATA_FILE_DIR)
 
 static SceneData data = {
+    .id = 0,
     .name = "",
     .cols = 0,
     .rows = 0,
@@ -47,7 +48,7 @@ static void parseSceneFile(const char *path) {
             nameFound = true;
             continue;
         }
-        // ok
+
         switch (line[0]) {
         case 'G': { // Grid
             int scanResponse = sscanf(line, "G %d %d", &data.cols, &data.rows);
@@ -90,13 +91,10 @@ static void parseSceneFile(const char *path) {
     fclose(f);
 }
 
-static int current_scene;
-
 void scene_data_load(int sceneIndex) {
-    current_scene = sceneIndex;
-
     strncpy(data.name, "", sizeof(data.name));
 
+    data.id = sceneIndex;
     data.cols = 0;
     data.rows = 0;
     data.pathWaypointsCount = 0;
@@ -123,12 +121,17 @@ void scene_data_load(int sceneIndex) {
 
 // General
 void scene_data_ReloadCurrentScene() {
-    scene_data_load(current_scene);
+    scene_data_load(data.id);
 }
 
 // Scene path functions
 void scene_data_RemoveLastWaypoint() {
     data.pathWaypointsCount--;
+}
+
+void scene_data_ReplaceWaypoints(V2i *waypoints, int waypoints_count) {
+    data.pathWaypointsCount = waypoints_count;
+    memcpy(data.pathWaypoints, waypoints, sizeof(data.pathWaypoints));
 }
 
 bool scene_data_WaypointCanBeSet(V2i new_waypoint) {

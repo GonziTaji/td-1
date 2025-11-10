@@ -128,8 +128,6 @@ static void AssertNodeCanBeAdded() {
     assert(panel.nodes_count < EDITOR_UI_MAX_PANEL_NODES && "Number of ui nodes in a panel exceeded");
 }
 
-/// numeric input
-/// give a 0-length label for no label
 IsActive ui_AddValueBox(char *label, int *value, int font_size, bool is_edit_mode) {
     AssertNodeCanBeAdded();
     AddGapIfNeeded();
@@ -214,6 +212,17 @@ IsActive ui_AddValueBox(char *label, int *value, int font_size, bool is_edit_mod
     // Only detect one click per frame
     if (active_node_found == false && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
         && CheckCollisionPointRec(GetMousePosition(), node->aabb)) {
+
+        active_node_found = true;
+        return true;
+    }
+
+    return false;
+}
+
+IsActive ui_isCurrentNodeActive() {
+    if (!active_node_found && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
+        && CheckCollisionPointRec(GetMousePosition(), panel.nodes[panel.nodes_count - 1].aabb)) {
 
         active_node_found = true;
         return true;

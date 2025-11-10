@@ -7,7 +7,7 @@
 
 #define FILE_PATH "data/towers.json"
 
-TowerRegistry tower_registry = {0};
+static TowerRegistry tower_registry = {0};
 
 static Color parseColor(cJSON *colorArray) {
     if (!cJSON_IsArray(colorArray) || cJSON_GetArraySize(colorArray) < 4)
@@ -21,7 +21,7 @@ static Color parseColor(cJSON *colorArray) {
     };
 }
 
-void unload() {
+static void unload() {
     if (tower_registry.data) {
         free(tower_registry.data);
         tower_registry.data = NULL;
@@ -100,3 +100,11 @@ bool tower_data_load() {
     free(data);
     return true;
 }
+
+#ifdef ENABLE_EDITOR
+
+TowerAttributes *tower_data_GetMutableTowerAttributes(int tower_id) {
+    return &tower_registry.data[tower_id].attributes;
+}
+
+#endif

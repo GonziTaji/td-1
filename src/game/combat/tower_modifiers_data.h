@@ -45,3 +45,9 @@ typedef struct {
 int tower_mod_data_getTowerTypeCount();
 const TowerModifier *const tower_mod_data_getDataByIndex(int index);
 bool tower_mod_data_load();
+
+#ifdef ENABLE_EDITOR
+
+char *tower_modifiers_data_GetAttrLabel(TowerAttributeType attribute);
+
+#endif

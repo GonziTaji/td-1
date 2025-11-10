@@ -111,3 +111,28 @@ bool tower_mod_data_load() {
     free(json);
     return true;
 }
+
+#ifdef ENABLE_EDITOR
+
+char *tower_modifiers_data_GetAttrLabel(TowerAttributeType attribute) {
+    switch (attribute) {
+    case TOWER_ATTR_DAMAGE:
+        return "Damage";
+    case TOWER_ATTR_RANGE:
+        return "Range";
+    case TOWER_ATTR_RATE_OF_FIRE:
+        return "ROF";
+    case TOWER_ATTR_BULLET_SPEED:
+        return "Bullet speed";
+    case TOWER_ATTR_MULTISHOT:
+        return "Multishot";
+    case TOWER_ATTR_CRIT_CHANCE_PERCENT:
+        return "Crit %";
+    case TOWER_ATTR_COUNT:
+        assert(false && "Invalid tower attribute type");
+    }
+
+    assert(false && "Invalid tower attribute type");
+}
+
+#endif

@@ -22,6 +22,7 @@ typedef struct {
 } WaveData;
 
 typedef struct {
+    int id;
     char name[SCENE_DATA_NAME_MAX_LENGTH];
     int cols;
     int rows;
@@ -45,5 +46,6 @@ void scene_data_ChangeGridDimensions(int cols, int rows);
 WaveData *scene_data_GetMutableWave(int wave_index);
 void scene_data_AddWave(float start_delay, int mob_count, MobType mob_type);
 void scene_data_RemoveWave(int wave_index);
+void scene_data_ReplaceWaypoints(V2i *waypoints, int waypoints_count);
 
 #endif

@@ -7,6 +7,7 @@
 
 typedef struct Game {
     float scale;
+    int seed;
     GameplaySpeed gameplaySpeed;
 } Game;
 

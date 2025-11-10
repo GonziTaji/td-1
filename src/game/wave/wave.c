@@ -58,6 +58,7 @@ typedef enum {
     WAVE_STATUS_ENDED,
 } WaveStatus;
 
+static bool waves_stopped = true;
 static WaveStatus wavesStatus[SCENE_DATA_MAX_WAVES];
 static float wavesSpawnTimers[SCENE_DATA_MAX_WAVES];
 static float wavesStartTimer[SCENE_DATA_MAX_WAVES];
@@ -272,6 +273,7 @@ bool wave_isPath(int tileX, int tileY) {
 }
 
 void wave_initData() {
+    waves_stopped = false;
     currentWaveIndex = -1;
     totalMobsCount = 0;
 
@@ -346,7 +348,7 @@ void wave_startNext() {
     }
 }
 
-void wave_update(float deltaTime) {
+static void updateWaves(float delta_time) {
     for (int i = 0; i < SCENE_DATA->wavesCount; i++) {
         // TODO: switch?
         if (wavesStatus[i] == WAVE_STATUS_ENDED) {
@@ -354,7 +356,7 @@ void wave_update(float deltaTime) {
         }
 
         if (wavesStatus[i] == WAVE_STATUS_NOT_STARTED) {
-            wavesStartTimer[i] -= deltaTime;
+            wavesStartTimer[i] -= delta_time;
 
             if (wavesStartTimer[i] <= 0) {
                 wave_startNext();
@@ -368,10 +370,12 @@ void wave_update(float deltaTime) {
                 wavesStatus[i] = WAVE_STATUS_ENDED;
             }
 
-            wavesSpawnTimers[i] -= deltaTime;
+            wavesSpawnTimers[i] -= delta_time;
         }
     }
+}
 
+static void updateMobs(float delta_time) {
     for (int i = 0; i < totalMobsCount; i++) {
         int waveIndex = mobsWaveIndex[i];
 
@@ -391,7 +395,7 @@ void wave_update(float deltaTime) {
 
             float pathTime = getPathTime(waypointIndex, mobsMovementSpeed[i]);
 
-            mobsTimeInCurrentPath[i] += applyEffectsToValue(i, deltaTime, STATUS_EFFECT_TYPE_SLOW);
+            mobsTimeInCurrentPath[i] += applyEffectsToValue(i, delta_time, STATUS_EFFECT_TYPE_SLOW);
             mobsTimeInCurrentPath[i] = Clamp(mobsTimeInCurrentPath[i], 0, pathTime);
 
             float t = mobsTimeInCurrentPath[i] / pathTime;
@@ -430,7 +434,7 @@ void wave_update(float deltaTime) {
                     continue;
                 }
 
-                timer->time_remaining -= deltaTime;
+                timer->time_remaining -= delta_time;
 
                 if (timer->time_remaining <= 0) {
                     timer->is_active = false;
@@ -441,6 +445,26 @@ void wave_update(float deltaTime) {
     }
 }
 
+void wave_update(float delta_time) {
+    if (!waves_stopped) {
+        updateWaves(delta_time);
+    }
+
+    updateMobs(delta_time);
+}
+
 void wave_draw() {
     drawMobs();
 }
+
+#ifdef ENABLE_EDITOR
+
+void wave_StopWaves() {
+    waves_stopped = true;
+
+    for (int i = 0; i < SCENE_DATA_MAX_MOBS; i++) {
+        mobsStatus[i] = MOB_STATUS_INACTIVE;
+    }
+}
+
+#endif

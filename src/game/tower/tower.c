@@ -1,5 +1,7 @@
+#include "../../core/asset_manager.h"
 #include "../../input/input.h"
 #include "../../utils/grid.h"
+#include "../../utils/random.h"
 #include "../../utils/utils.h"
 #include "../constants.h"
 #include "../gameplay.h"
@@ -16,6 +18,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define CRIT_PITTY_INCREASE 0.01f
 
 static char buffer[16];
 
@@ -39,7 +43,7 @@ static int compareFloats(const void *a, const void *b) {
     return (*(float *)a - *(float *)b);
 }
 
-static void spawnBullet(const Tower *tower, int mobTargetIndex) {
+static void spawnBullet(Tower *tower, int mobTargetIndex) {
     for (int i = 0; i < SCENE_MAX_BULLETS; i++) {
         if (towerBullets[i].alive) {
             continue;
@@ -51,6 +55,24 @@ static void spawnBullet(const Tower *tower, int mobTargetIndex) {
         towerBullets[i].source_coords = tower->coords;
         towerBullets[i].mob_target_index = mobTargetIndex;
         towerBullets[i].position = grid_getTileCenter(SCENE_TRANSFORM, tower->coords.x, tower->coords.y);
+
+        if (tower->attributes.crit_chance_percent > 0) {
+            const float final_crit_chance = tower->attributes.crit_chance_percent + tower->crit_pitty_bonus;
+
+            const float r = random_float01();
+            const bool is_crit = r < final_crit_chance;
+
+            towerBullets[i].is_crit = is_crit;
+
+            if (is_crit) {
+                // TODO: define crit damage multiplier base and for modifiers
+                towerBullets[i].damage *= 1.5;
+
+                tower->crit_pitty_bonus = 0;
+            } else {
+                tower->crit_pitty_bonus += CRIT_PITTY_INCREASE;
+            }
+        }
 
         return;
     }
@@ -202,6 +224,7 @@ static void placeTower(int x, int y) {
         tower->coords.x = x;
         tower->coords.y = y;
         tower->current_target_idx = -1;
+        tower->crit_pitty_bonus = 0;
         // will shoot as soon as it has a target
         tower->time_since_last_shot = 1.0f / base->attributes.rate_of_fire;
 
@@ -324,7 +347,6 @@ static void updateTowers(float deltaTime) {
         towersPool[i].time_since_last_shot += deltaTime;
 
         if (towersPool[i].time_since_last_shot >= towerSecondsPerBullet) {
-            // printf("Shooting after %0.2f seconds\n", towersPool[i].time_since_last_shot);
             towersPool[i].time_since_last_shot -= towerSecondsPerBullet;
 
             spawnBullet(&towersPool[i], towersPool[i].current_target_idx);
@@ -519,6 +541,11 @@ static void drawTowerTarget(Vector2 tileCenter, int mobIndex) {
 
 static void drawBullet(const TowerBullet *bullet) {
     DrawCircle(bullet->position.x, bullet->position.y, bullet->render_width, bullet->color);
+
+    if (bullet->is_crit) {
+        Vector2 crit_indicator_pos = Vector2AddValue(bullet->position, -20);
+        DrawTextEx(uiFont, "CRIT!", crit_indicator_pos, 14, 4, RED);
+    }
 }
 
 void towers_draw() {
@@ -536,7 +563,7 @@ void towers_draw() {
             int mobIndex = towersPool[i].current_target_idx;
             drawTowerTarget(tileCenter, mobIndex);
 
-            float range = tower_data_getDataByIndex(tower_to_place_data_idx)->attributes.range;
+            float range = towersPool[i].attributes.range;
             drawRangeIndicator(range, towerCoords.x, towerCoords.y);
 
             if (wave_mob_isAlive(mobIndex)) {

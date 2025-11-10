@@ -25,3 +25,9 @@ void wave_update(float deltaTime);
 // draw
 void wave_draw();
 void wave_drawInfo();
+
+#ifdef ENABLE_EDITOR
+
+void wave_StopWaves();
+
+#endif

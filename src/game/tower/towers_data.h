@@ -2,8 +2,8 @@
 
 #include "../../utils/utils.h"
 #include "../combat/bullet_modifiers_data.h"
-#include "../combat/tower_modifiers_data.h"
 #include "../combat/status_effects_data.h"
+#include "../combat/tower_modifiers_data.h"
 #include <raylib.h>
 #include <stdbool.h>
 
@@ -22,6 +22,7 @@ typedef struct {
 
     float damage;
     float speed;
+    bool is_crit;
 
     BulletAttributes attributes;
 
@@ -63,6 +64,8 @@ typedef struct {
     int bullet_modifier_count;
     BulletModifier bullet_modifiers[TOWER_MAX_ENHANCEMENTS];
 
+    float crit_pitty_bonus;
+
     /// Computed base values with modifiers applied
     TowerBullet bullet;
     TowerAttributes attributes;
@@ -73,6 +76,12 @@ typedef struct {
     int count;
 } TowerRegistry;
 
-const TowerBaseData * const tower_data_getDataByIndex(int tower_id);
+const TowerBaseData *const tower_data_getDataByIndex(int tower_id);
 int tower_data_getTowerTypeCount();
 bool tower_data_load();
+
+#ifdef ENABLE_EDITOR
+
+TowerAttributes *tower_data_GetMutableTowerAttributes(int tower_id);
+
+#endif

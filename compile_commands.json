@@ -430,5 +430,23 @@
    "build/third_party/cJSON.o"
   ],
   "file": "third_party/cJSON.c"
+ },
+ {
+  "directory": "/home/yogusita/proyectos/td-1",
+  "arguments": [
+   "gcc",
+   "-Wall",
+   "-Iinclude",
+   "-Ithird_party",
+   "-g",
+   "-Werror",
+   "-DENABLE_EDITOR",
+   "-DTEST_UI",
+   "-c",
+   "src/utils/random.c",
+   "-o",
+   "build/src/utils/random.o"
+  ],
+  "file": "src/utils/random.c"
  }
 ]
