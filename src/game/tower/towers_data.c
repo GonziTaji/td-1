@@ -1,6 +1,7 @@
 #include "towers_data.h"
 #include "cJSON.h"
 #include <assert.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,7 +35,9 @@ int tower_data_getTowerTypeCount() {
 }
 
 const TowerBaseData *const tower_data_getDataByIndex(int index) {
-    assert(index < tower_registry.count && index >= 0 && "Invalid index");
+    if (index < tower_registry.count && index >= 0 && "Invalid index") {
+        return NULL;
+    }
 
     return &tower_registry.data[index];
 }
@@ -70,6 +73,7 @@ bool tower_data_load() {
     float size = sizeof(TowerBaseData) * count;
 
     tower_registry.count = count;
+    tower_registry.capacity = count;
     tower_registry.data = malloc(size);
 
     for (int i = 0; i < count; i++) {
@@ -103,8 +107,39 @@ bool tower_data_load() {
 
 #ifdef ENABLE_EDITOR
 
-TowerAttributes *tower_data_GetMutableTowerAttributes(int tower_id) {
-    return &tower_registry.data[tower_id].attributes;
+TowerBaseData *tower_data_GetMutableTowerData(int tower_id) {
+    return &tower_registry.data[tower_id];
+}
+
+void tower_data_RemoveTowerData(int tower_id) {
+    for (int i = tower_id; i < tower_registry.count; i++) {
+        tower_registry.data[i] = tower_registry.data[i + 1];
+    }
+
+    tower_registry.count--;
+}
+
+int tower_data_CreateNewTowerType() {
+    if (tower_registry.count >= tower_registry.capacity) {
+        tower_registry.capacity *= 2;
+        tower_registry.data = realloc(tower_registry.data, tower_registry.capacity * sizeof(TowerBaseData));
+    }
+
+    TowerBaseData *tower_data = &tower_registry.data[tower_registry.count];
+
+    strncpy(tower_data->name, "Unnamed", sizeof(tower_data->name));
+
+    tower_data->tower_color = WHITE;
+    tower_data->bullet_color = WHITE;
+    tower_data->bullet_width = 10;
+
+    for (TowerAttributeType attr_type = 0; attr_type < TOWER_ATTR_COUNT; attr_type++) {
+        tower_data->attributes.values[attr_type] = 0;
+    }
+
+    tower_registry.count++;
+
+    return tower_registry.count - 1;
 }
 
 #endif

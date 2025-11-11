@@ -350,6 +350,8 @@ static void updateTowers(float deltaTime) {
             towersPool[i].time_since_last_shot -= towerSecondsPerBullet;
 
             spawnBullet(&towersPool[i], towersPool[i].current_target_idx);
+
+            // TODO: multishot - try to target mobs near the current target (same wave/+-index)
         }
     }
 }

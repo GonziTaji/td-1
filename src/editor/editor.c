@@ -1,6 +1,7 @@
 #include "../game/game.h"
 #include "../game/scene/scene_data.h"
 #include "../game/scene/view_mamanger.h"
+#include "../game/tower/tower.h"
 #include "../game/tower/towers_data.h"
 #include "../game/wave/wave.h"
 #include "../utils/grid.h"
@@ -103,15 +104,44 @@ static const struct {
     .input = 16,
 };
 
-static const UILayout default_layout = {
+static const UILayout base_layout = {
     .padding = 20,
     .gap = 10,
     .direction = LAYOUT_DIR_COL,
 };
 
+typedef enum {
+    TAB_TYPE_SCENE,
+    TAB_TYPE_TOWERS,
+    TAB_TYPE_COUNT,
+} TabType;
+
+struct {
+    char *labels[TAB_TYPE_COUNT];
+    TabType tab_selected;
+} tabs_state = {
+    .tab_selected = TAB_TYPE_SCENE,
+    .labels = {"Scene", "Towers"},
+};
+
+static Rectangle DrawTabsHeader(Vector2 position) {
+    UILayout layout = base_layout;
+    layout.padding = 2;
+
+    ui_StartPanel(position, layout);
+
+    const int active_tab_button = ui_AddToolbar(TAB_TYPE_COUNT, tabs_state.labels, font_sizes.subtitle);
+
+    if (active_tab_button != -1) {
+        tabs_state.tab_selected = active_tab_button;
+    }
+
+    return ui_EndPanel();
+}
+
 /// returns the final panel aabb
 static Rectangle DrawScenePanel(Vector2 panel_origin) {
-    ui_StartPanel(panel_origin, default_layout);
+    ui_StartPanel(panel_origin, base_layout);
 
     //
     // SCENE SECTION
@@ -184,6 +214,7 @@ static Rectangle DrawScenePanel(Vector2 panel_origin) {
         for (int end_idx = 1; end_idx < SCENE_DATA->pathWaypointsCount; end_idx++) {
             const V2i *start = &SCENE_DATA->pathWaypoints[end_idx - 1];
             const V2i *end = &SCENE_DATA->pathWaypoints[end_idx];
+
             snprintf(buffer, sizeof(buffer), "%d: %d, %d > %d %d", end_idx, start->x, start->y, end->x, end->y);
             ui_AddTextNode(buffer, font_sizes.text);
         }
@@ -274,7 +305,7 @@ static Rectangle DrawScenePanel(Vector2 panel_origin) {
         const InputData *input = &wave_inputs[i];
         const bool is_edit_mode = editor_state.active_input_id == input->id;
 
-        if (ui_AddValueBox(input->label, input->value, font_sizes.input, is_edit_mode)) {
+        if (ui_AddIntInput(input->label, input->value, font_sizes.input, is_edit_mode)) {
             editor_state.active_input_id = input->id;
         }
     }
@@ -283,87 +314,117 @@ static Rectangle DrawScenePanel(Vector2 panel_origin) {
 }
 
 Rectangle DrawTowersPanel(Vector2 panel_position) {
-    ui_StartPanel(panel_position, default_layout);
+    ui_StartPanel(panel_position, base_layout);
 
     ui_AddTextNode("Towers", font_sizes.title);
 
-    const TowerBaseData *tower_data;
-    TowerAttributes *tower_attrs;
+    if (ui_AddButton("Restore saved tower data", font_sizes.button)) {
+        tower_data_load();
+    }
+
+    ui_AddSeparator(1);
+
+    ui_AddTextNode("Tower list", font_sizes.subtitle);
+
+    ui_AddSeparator(1);
 
     const int tower_types_count = tower_data_getTowerTypeCount();
 
     for (int type_id = 0; type_id < tower_types_count; type_id++) {
-        tower_data = tower_data_getDataByIndex(type_id);
-        tower_attrs = tower_data_GetMutableTowerAttributes(type_id);
-
-        // Color tower_color;
-        // Color bullet_color;
-        // int bullet_width;
-
-        ui_AddSeparator(1);
-
-        if (editor_state.tower_selected_id != type_id) {
-            snprintf(buffer, sizeof(buffer), "[+] %s", tower_data->name);
-
-            if (ui_AddButton(buffer, font_sizes.button)) {
-                editor_state.tower_selected_id = type_id;
-            }
-
-            continue;
+        if (type_id == editor_state.tower_selected_id) {
+            snprintf(buffer, sizeof(buffer), "%s >>", tower_data_GetMutableTowerData(type_id)->name);
+        } else {
+            snprintf(buffer, sizeof(buffer), "%s", tower_data_GetMutableTowerData(type_id)->name);
         }
 
-        snprintf(buffer, sizeof(buffer), "%s", tower_data->name);
-        ui_AddTextNode(buffer, font_sizes.subtitle);
-
-        for (TowerAttributeType attr_type = 0; attr_type < TOWER_ATTR_COUNT; attr_type++) {
-            snprintf(buffer, sizeof(buffer), "%s", tower_modifiers_data_GetAttrLabel(attr_type));
-
-            const int element_id = getId();
-            const bool is_edit_mode = editor_state.active_input_id == element_id;
-
-            switch (attr_type) {
-            case TOWER_ATTR_DAMAGE:
-            case TOWER_ATTR_RANGE:
-            case TOWER_ATTR_BULLET_SPEED:
-            case TOWER_ATTR_MULTISHOT: {
-                int int_value = tower_attrs->values[attr_type];
-                if (ui_AddValueBox(buffer, &int_value, font_sizes.text, is_edit_mode)) {
-                    editor_state.active_input_id = element_id;
-                }
-
-                tower_attrs->values[attr_type] = int_value;
-
-                break;
-            }
-
-            case TOWER_ATTR_RATE_OF_FIRE:
-            case TOWER_ATTR_CRIT_CHANCE_PERCENT: {
-                int int_value = tower_attrs->values[attr_type] * 100;
-                if (ui_AddValueBox(buffer, &int_value, font_sizes.text, is_edit_mode)) {
-                    editor_state.active_input_id = element_id;
-                }
-
-                tower_attrs->values[attr_type] = (float)int_value / 100;
-
-                break;
-            }
-
-            case TOWER_ATTR_COUNT:
-                assert(false && "Invalid tower attribute type");
-                break;
-            }
+        if (ui_AddButton(buffer, font_sizes.button)) {
+            editor_state.tower_selected_id = type_id;
         }
     }
 
-    return ui_EndPanel();
+    ui_AddSeparator(1);
+
+    if (ui_AddButton("Add new tower", font_sizes.button)) {
+        editor_state.tower_selected_id = tower_data_CreateNewTowerType();
+    }
+
+    const Rectangle main_panel_rec = ui_EndPanel();
+    Vector2 selected_tower_panel_origin = {main_panel_rec.x + main_panel_rec.width, main_panel_rec.y};
+
+    ui_StartPanel(selected_tower_panel_origin, base_layout);
+
+    TowerBaseData *tower_data = tower_data_GetMutableTowerData(editor_state.tower_selected_id);
+    TowerAttributes *tower_attrs = &tower_data->attributes;
+
+    ui_AddTextNode("Tower selected:", font_sizes.subtitle);
+    ui_AddSeparator(1);
+
+    const int element_id = getId();
+    const bool is_edit_mode = editor_state.active_input_id == element_id;
+
+    if (ui_AddTextInput("Name: ", tower_data->name, font_sizes.subtitle, is_edit_mode)) {
+        editor_state.active_input_id = element_id;
+    }
+
+    // Color tower_color;
+    // Color bullet_color;
+    // int bullet_width;
+
+    for (TowerAttributeType attr_type = 0; attr_type < TOWER_ATTR_COUNT; attr_type++) {
+        snprintf(buffer, sizeof(buffer), "%s: ", tower_modifiers_data_GetAttrLabel(attr_type));
+
+        const int element_id = getId();
+        const bool is_edit_mode = editor_state.active_input_id == element_id;
+
+        switch (attr_type) {
+        case TOWER_ATTR_DAMAGE:
+        case TOWER_ATTR_RANGE:
+        case TOWER_ATTR_BULLET_SPEED:
+        case TOWER_ATTR_MULTISHOT: {
+            int int_value = tower_attrs->values[attr_type];
+            if (ui_AddIntInput(buffer, &int_value, font_sizes.text, is_edit_mode)) {
+                editor_state.active_input_id = element_id;
+            }
+
+            tower_attrs->values[attr_type] = int_value;
+
+            break;
+        }
+
+        case TOWER_ATTR_RATE_OF_FIRE:
+        case TOWER_ATTR_CRIT_CHANCE_PERCENT: {
+            int int_value = tower_attrs->values[attr_type] * 100;
+
+            if (ui_AddIntInput(buffer, &int_value, font_sizes.text, is_edit_mode)) {
+                editor_state.active_input_id = element_id;
+            }
+
+            tower_attrs->values[attr_type] = (float)int_value / 100;
+
+            break;
+        }
+
+        case TOWER_ATTR_COUNT:
+            assert(false && "Invalid tower attribute type");
+            break;
+        }
+    }
+
+    if (tower_types_count > 1 && ui_AddButton("Delete tower", font_sizes.button)) {
+        towers_clear();
+        tower_data_RemoveTowerData(editor_state.tower_selected_id);
+    }
+
+    Rectangle tower_editor_panel_rec = ui_EndPanel();
+
+    tower_editor_panel_rec.y = main_panel_rec.y;
+
+    return tower_editor_panel_rec;
 }
 
 Rectangle DrawInfoPanel(Vector2 panel_origin) {
-    ui_StartPanel(panel_origin, default_layout);
+    ui_StartPanel(panel_origin, base_layout);
 
-    //
-    // RANDOM INFO SECTION
-    //
     ui_AddSeparator(1);
     ui_AddTextNode("INFO", font_sizes.title);
 
@@ -372,6 +433,7 @@ Rectangle DrawInfoPanel(Vector2 panel_origin) {
         "Mouse pos: %.0f, %.0f",
         editor_state.mouse_game_pos.x,
         editor_state.mouse_game_pos.y);
+
     ui_AddTextNode(buffer, font_sizes.text);
 
     if (editor_state.is_hovered_coords_valid) {
@@ -380,6 +442,7 @@ Rectangle DrawInfoPanel(Vector2 panel_origin) {
             "Hovered coords: %d, %d",
             editor_state.hovered_coords.x,
             editor_state.hovered_coords.y);
+
         ui_AddTextNode(buffer, font_sizes.text);
     } else {
         ui_AddTextNode("Hovered coords: NONE", font_sizes.text);
@@ -387,6 +450,8 @@ Rectangle DrawInfoPanel(Vector2 panel_origin) {
 
     return ui_EndPanel();
 }
+
+const Vector2 initial_ui_cursor = {20, 20};
 
 void editor_Draw() {
     editor_state.last_element_id = editor_initial_state.last_element_id;
@@ -399,18 +464,26 @@ void editor_Draw() {
     editor_state.is_hovered_coords_valid
         = grid_isValidCoords(SCENE_DATA->cols, SCENE_DATA->rows, editor_state.hovered_coords);
 
-    Vector2 ui_cursor = {30, 30};
-    Rectangle rec;
+    Vector2 ui_cursor = initial_ui_cursor;
 
-    if (editor_state.show_scene_panel) {
+    Rectangle rec = DrawTabsHeader(ui_cursor);
+
+    Vector2 info_panel_origin = {rec.x + rec.width + 2, rec.y};
+
+    ui_cursor.y += rec.height + 10;
+
+    switch (tabs_state.tab_selected) {
+    case TAB_TYPE_SCENE:
         rec = DrawScenePanel(ui_cursor);
-        ui_cursor = RectangleGetPosition(rec);
-        ui_cursor.x += rec.width + 10;
-
+        break;
+    case TAB_TYPE_TOWERS:
         rec = DrawTowersPanel(ui_cursor);
-        ui_cursor = RectangleGetPosition(rec);
-        ui_cursor.x += rec.width + 10;
+        break;
+    case TAB_TYPE_COUNT:
+        break;
     }
 
-    DrawInfoPanel(ui_cursor);
+    info_panel_origin.x = MAX(info_panel_origin.x, rec.x + rec.width + 10);
+
+    DrawInfoPanel(info_panel_origin);
 }

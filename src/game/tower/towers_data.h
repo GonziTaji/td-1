@@ -74,6 +74,7 @@ typedef struct {
 typedef struct {
     TowerBaseData *data;
     int count;
+    int capacity;
 } TowerRegistry;
 
 const TowerBaseData *const tower_data_getDataByIndex(int tower_id);
@@ -82,6 +83,8 @@ bool tower_data_load();
 
 #ifdef ENABLE_EDITOR
 
-TowerAttributes *tower_data_GetMutableTowerAttributes(int tower_id);
+TowerBaseData *tower_data_GetMutableTowerData(int tower_id);
+void tower_data_RemoveTowerData(int tower_id);
+int tower_data_CreateNewTowerType();
 
 #endif

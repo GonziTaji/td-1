@@ -34,7 +34,8 @@ static const int input_padding = 5;
 static const int input_label_padding = 5;
 
 // other
-static const int input_width = 50;
+static const int input_int_width = 50;
+static const int input_text_min_width = 150;
 
 typedef struct {
     int font_size;
@@ -128,23 +129,29 @@ static void AssertNodeCanBeAdded() {
     assert(panel.nodes_count < EDITOR_UI_MAX_PANEL_NODES && "Number of ui nodes in a panel exceeded");
 }
 
-IsActive ui_AddValueBox(char *label, int *value, int font_size, bool is_edit_mode) {
+static IsActive AddInput(InputType type, char *label, char *text_value, void *value, int font_size, bool is_edit_mode) {
     AssertNodeCanBeAdded();
     AddGapIfNeeded();
 
     UINode *const node = &panel.nodes[panel.nodes_count];
-
-    char text_value[EDITOR_UI_MAX_CHARS_INPUT_NODE] = "";
-    snprintf(text_value, EDITOR_UI_MAX_CHARS_INPUT_NODE, "%i", *value);
-    int key_count = (int)strlen(text_value);
 
     memcpy(node->input.text_value, text_value, EDITOR_UI_MAX_CHARS_INPUT_NODE);
 
     node->type = NODE_TYPE_INPUT;
     node->input.font_size = font_size;
 
-    node->aabb.width = input_width;
-    node->aabb.height = MeasureTextEx(uiFont, node->input.text_value, font_size, 0).y;
+    switch (type) {
+    case INPUT_TYPE_TEXT:
+        node->aabb.width = MeasureTextEx(uiFont, text_value, font_size, 0).x + (input_label_padding * 2);
+        node->aabb.width = MAX(input_text_min_width, node->aabb.width);
+        break;
+
+    case INPUT_TYPE_INT:
+        node->aabb.width = input_int_width;
+        break;
+    }
+
+    node->aabb.height = font_size;
     node->aabb.height += input_padding * 2;
     node->input.active = is_edit_mode;
 
@@ -183,6 +190,82 @@ IsActive ui_AddValueBox(char *label, int *value, int font_size, bool is_edit_mod
     if (is_edit_mode) {
         bool value_has_changed = false;
 
+        int key_count = (int)strlen(text_value);
+
+        // Only allow keys in range [48..57] (numbers)
+        if (key_count < EDITOR_UI_MAX_CHARS_INPUT_NODE) {
+            const float text_width = MeasureTextEx(uiFont, text_value, font_size, 0).x;
+
+            if (text_width < node->aabb.width - (input_padding * 2)) {
+                int key = GetCharPressed();
+                bool key_accepted = false;
+
+                switch (type) {
+                case INPUT_TYPE_TEXT:
+                    key_accepted = true;
+                    break;
+                case INPUT_TYPE_INT:
+                    if ((key >= 48) && (key <= 57)) {
+                        key_accepted = true;
+                    }
+                    break;
+                }
+
+                if (key_accepted) {
+                    text_value[key_count] = (char)key;
+                    key_count++;
+                    value_has_changed = true;
+                }
+            }
+        }
+
+        // Delete text
+        if (key_count > 0 && IsKeyPressed(KEY_BACKSPACE)) {
+            key_count--;
+            text_value[key_count] = '\0';
+            value_has_changed = true;
+        }
+
+        if (value_has_changed) {
+            switch (type) {
+            case INPUT_TYPE_TEXT:
+                memcpy(value, text_value, sizeof(*text_value));
+                break;
+            case INPUT_TYPE_INT:
+                if (value_has_changed) {
+                    *(int *)value = atoi(text_value);
+                }
+                break;
+            }
+        }
+    }
+
+    // Only detect one click per frame
+    if (active_node_found == false && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
+        && CheckCollisionPointRec(GetMousePosition(), node->aabb)) {
+
+        active_node_found = true;
+        return true;
+    }
+
+    return false;
+}
+
+IsActive ui_AddIntInput(char *label, int *value, int font_size, bool is_edit_mode) {
+    char text_value[EDITOR_UI_MAX_CHARS_INPUT_NODE];
+    snprintf(text_value, sizeof(text_value), "%d", *value);
+
+    return AddInput(INPUT_TYPE_INT, label, text_value, value, font_size, is_edit_mode);
+}
+
+IsActive ui_AddTextInput(char *label, char *text_value, int font_size, bool is_edit_mode) {
+    UINode *const node = &panel.nodes[panel.nodes_count];
+
+    if (is_edit_mode) {
+        bool value_has_changed = false;
+
+        int key_count = (int)strlen(text_value);
+
         // Only allow keys in range [48..57] (numbers)
         if (key_count < EDITOR_UI_MAX_CHARS_INPUT_NODE) {
             const float text_width = MeasureTextEx(uiFont, text_value, font_size, 0).x;
@@ -205,19 +288,11 @@ IsActive ui_AddValueBox(char *label, int *value, int font_size, bool is_edit_mod
         }
 
         if (value_has_changed) {
-            *value = atoi(text_value);
+            // *value = atoi(text_value);
         }
     }
 
-    // Only detect one click per frame
-    if (active_node_found == false && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
-        && CheckCollisionPointRec(GetMousePosition(), node->aabb)) {
-
-        active_node_found = true;
-        return true;
-    }
-
-    return false;
+    return AddInput(INPUT_TYPE_TEXT, label, text_value, text_value, font_size, is_edit_mode);
 }
 
 IsActive ui_isCurrentNodeActive() {
