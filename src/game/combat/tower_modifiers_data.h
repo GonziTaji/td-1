@@ -42,12 +42,13 @@ typedef struct {
     ModValueType value_type;
 } TowerModifier;
 
-int tower_mod_data_getTowerTypeCount();
+int tower_mod_data_GetModCount();
 const TowerModifier *const tower_mod_data_getDataByIndex(int index);
 bool tower_mod_data_load();
 
 #ifdef ENABLE_EDITOR
 
-char *tower_modifiers_data_GetAttrLabel(TowerAttributeType attribute);
+char *tower_mod_data_GetAttrLabel(TowerAttributeType attribute);
+TowerModifier *tower_mod_data_GetMutableModData(int mod_id);
 
 #endif

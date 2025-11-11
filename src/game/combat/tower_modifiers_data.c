@@ -30,7 +30,7 @@ static void unloadTowerModifiersData(void) {
     tower_modifiers.count = 0;
 }
 
-int tower_mod_data_getTowerTypeCount() {
+int tower_mod_data_GetModCount() {
     return tower_modifiers.count;
 }
 
@@ -114,7 +114,7 @@ bool tower_mod_data_load() {
 
 #ifdef ENABLE_EDITOR
 
-char *tower_modifiers_data_GetAttrLabel(TowerAttributeType attribute) {
+char *tower_mod_data_GetAttrLabel(TowerAttributeType attribute) {
     switch (attribute) {
     case TOWER_ATTR_DAMAGE:
         return "Damage";
@@ -133,6 +133,10 @@ char *tower_modifiers_data_GetAttrLabel(TowerAttributeType attribute) {
     }
 
     assert(false && "Invalid tower attribute type");
+}
+
+TowerModifier *tower_mod_data_GetMutableModData(int mod_id) {
+    return &tower_modifiers.data[mod_id];
 }
 
 #endif

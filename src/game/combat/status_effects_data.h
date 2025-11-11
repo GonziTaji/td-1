@@ -21,6 +21,12 @@ typedef struct {
     float dot_interval;
 } StatusEffect;
 
-int status_effect_data_getCount();
 const StatusEffect *const status_effect_data_getDataById(int index);
 bool status_effect_data_load();
+
+#ifdef ENABLE_EDITOR
+
+int status_effect_data_GetEffectsCount();
+StatusEffect *status_effect_data_GetMutableStatusData(int effect_id);
+
+#endif

@@ -57,10 +57,6 @@ static void unloadStatusEffectsData(void) {
     status_effects.count = 0;
 }
 
-int status_effect_data_getCount() {
-    return status_effects.count;
-}
-
 const StatusEffect *const status_effect_data_getDataById(int id) {
     assert(id < status_effects.count && id >= 0 && "Invalid id");
 
@@ -137,3 +133,15 @@ bool status_effect_data_load() {
     free(json);
     return true;
 }
+
+#ifdef ENABLE_EDITOR
+
+int status_effect_data_GetEffectsCount() {
+    return status_effects.count;
+}
+
+StatusEffect *status_effect_data_GetMutableStatusData(int effect_id) {
+    return &status_effects.data[effect_id];
+}
+
+#endif

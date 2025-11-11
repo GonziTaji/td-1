@@ -111,17 +111,20 @@ static const UILayout base_layout = {
 };
 
 typedef enum {
-    TAB_TYPE_SCENE,
-    TAB_TYPE_TOWERS,
-    TAB_TYPE_COUNT,
-} TabType;
+    EDITOR_TAB_SCENE,
+    EDITOR_TAB_TOWERS,
+    EDITOR_TAB_TOWER_MODIFIERS,
+    EDITOR_TAB_BULLET_MODIFIERS,
+    EDITOR_TAB_STATUS_EFFECTS,
+    EDITOR_TAB_COUNT,
+} EditorTab;
 
 struct {
-    char *labels[TAB_TYPE_COUNT];
-    TabType tab_selected;
+    char *labels[EDITOR_TAB_COUNT];
+    EditorTab tab_selected;
 } tabs_state = {
-    .tab_selected = TAB_TYPE_SCENE,
-    .labels = {"Scene", "Towers"},
+    .tab_selected = EDITOR_TAB_SCENE,
+    .labels = {"Scene", "Towers", "Tower mods", "Bullet mods", "Status effects"},
 };
 
 static Rectangle DrawTabsHeader(Vector2 position) {
@@ -130,10 +133,45 @@ static Rectangle DrawTabsHeader(Vector2 position) {
 
     ui_StartPanel(position, layout);
 
-    const int active_tab_button = ui_AddToolbar(TAB_TYPE_COUNT, tabs_state.labels, font_sizes.subtitle);
+    const int active_tab_button = ui_AddToolbar(EDITOR_TAB_COUNT, tabs_state.labels, font_sizes.subtitle);
 
     if (active_tab_button != -1) {
         tabs_state.tab_selected = active_tab_button;
+    }
+
+    return ui_EndPanel();
+}
+
+static Rectangle DrawTowerModsPanel(Vector2 position) {
+    ui_StartPanel(position, base_layout);
+    return ui_EndPanel();
+}
+
+static Rectangle DrawBulletModsPanel(Vector2 position) {
+    ui_StartPanel(position, base_layout);
+
+    return ui_EndPanel();
+}
+
+static Rectangle DrawStatusEffectsPanel(Vector2 position) {
+    ui_StartPanel(position, base_layout);
+
+    // char name[32];
+    // int id;
+    // StatusEffectType type;
+    // DurationType duration_type;
+    // ModValueType value_type;
+    //
+    // float value;
+    // float duration;
+    // float dot_interval;
+
+    const int status_count = status_effect_data_GetEffectsCount();
+
+    for (int i = 0; i < status_count; i++) {
+        StatusEffect *effect = status_effect_data_GetMutableStatusData(i);
+
+        ui_AddTextNode(effect->name, font_sizes.subtitle);
     }
 
     return ui_EndPanel();
@@ -371,7 +409,7 @@ Rectangle DrawTowersPanel(Vector2 panel_position) {
     // int bullet_width;
 
     for (TowerAttributeType attr_type = 0; attr_type < TOWER_ATTR_COUNT; attr_type++) {
-        snprintf(buffer, sizeof(buffer), "%s: ", tower_modifiers_data_GetAttrLabel(attr_type));
+        snprintf(buffer, sizeof(buffer), "%s: ", tower_mod_data_GetAttrLabel(attr_type));
 
         const int element_id = getId();
         const bool is_edit_mode = editor_state.active_input_id == element_id;
@@ -473,13 +511,24 @@ void editor_Draw() {
     ui_cursor.y += rec.height + 10;
 
     switch (tabs_state.tab_selected) {
-    case TAB_TYPE_SCENE:
+    case EDITOR_TAB_SCENE:
         rec = DrawScenePanel(ui_cursor);
         break;
-    case TAB_TYPE_TOWERS:
+    case EDITOR_TAB_TOWERS:
         rec = DrawTowersPanel(ui_cursor);
         break;
-    case TAB_TYPE_COUNT:
+    case EDITOR_TAB_TOWER_MODIFIERS:
+        rec = DrawTowerModsPanel(ui_cursor);
+        break;
+    case EDITOR_TAB_BULLET_MODIFIERS:
+        rec = DrawBulletModsPanel(ui_cursor);
+        break;
+    case EDITOR_TAB_STATUS_EFFECTS:
+        rec = DrawStatusEffectsPanel(ui_cursor);
+        break;
+
+    case EDITOR_TAB_COUNT:
+        assert(false && "Count enum value used as identifier");
         break;
     }
 

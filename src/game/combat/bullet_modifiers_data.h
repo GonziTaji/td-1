@@ -29,3 +29,10 @@ typedef struct {
 int bullet_mod_data_getTowerTypeCount();
 const BulletModifier *const bullet_mod_data_getDataByIndex(int index);
 bool bullet_mod_data_load();
+
+#ifdef ENABLE_EDITOR
+
+int bullet_mod_data_GetModCount();
+BulletModifier *bullet_mod_data_GetMutableModData(int mod_id);
+
+#endif

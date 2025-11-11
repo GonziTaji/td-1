@@ -101,3 +101,15 @@ bool bullet_mod_data_load() {
     free(json);
     return true;
 }
+
+#ifdef ENABLE_EDITOR
+
+int bullet_mod_data_GetModCount() {
+    return bullet_modifiers.count;
+}
+
+BulletModifier *bullet_mod_data_GetMutableModData(int mod_id) {
+    return &bullet_modifiers.data[mod_id];
+}
+
+#endif
