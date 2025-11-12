@@ -141,12 +141,7 @@ static Rectangle DrawTabsHeader(Vector2 position) {
 
     ui_StartPanel(position, layout);
 
-    const int active_tab_button = ui_AddToolbar(EDITOR_TAB_COUNT, tabs_state.labels, font_sizes.subtitle);
-
-    if (active_tab_button != -1) {
-        tabs_state.tab_selected = active_tab_button;
-        editor_state.active_input_id = 0;
-    }
+    ui_AddSwitchButtons(EDITOR_TAB_COUNT, (int *)&tabs_state.tab_selected, tabs_state.labels, font_sizes.subtitle);
 
     return ui_EndPanel();
 }

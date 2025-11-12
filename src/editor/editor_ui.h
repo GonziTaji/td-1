@@ -57,6 +57,7 @@ void ui_AddTextNode(char *text, int font_size);
 void ui_AddSeparator(int thickness);
 void ui_AddOptionButton(const char *label, int *value, char **options, int option_count, int font_size);
 IsActive ui_AddButton(char *text, int font_size);
+void ui_AddSwitchButtons(int button_count, int *active_button_idx, char **labels, int font_size);
 int ui_AddToolbar(int button_count, char **labels, int font_size);
 IsActive ui_AddIntInput(char *label, int *value, int font_size, bool is_edit_mode);
 IsActive ui_AddTextInput(char *label, char *text_value, int font_size, bool is_edit_mode);

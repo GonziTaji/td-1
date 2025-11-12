@@ -25,7 +25,8 @@ const Color color_panel_bg = {1, 17, 10, 255};
 const Color color_separator_bg = {105, 103, 115, 255};
 const Color color_button_bg = {39, 38, 44, 255};
 const Color color_button_border = {105, 103, 115, 255};
-const Color color_button_border_hover = WHITE;
+const Color color_button_border_hover = {222, 222, 222, 255};
+const Color color_button_border_active = WHITE;
 const Color color_input_bg = {0, 0, 0, 0};
 const Color color_input_border = {105, 103, 115, 255};
 const Color color_input_border_active = WHITE;
@@ -53,6 +54,8 @@ typedef struct {
     int button_count;
     char *labels[EDITOR_UI_TOOLBAR_MAX_BUTTONS];
     Rectangle buttons_aabb[EDITOR_UI_TOOLBAR_MAX_BUTTONS];
+    bool is_switch;
+    int switch_active_button_idx;
 } UIToolbarNode;
 
 typedef struct {
@@ -609,6 +612,19 @@ IsActive ui_isCurrentNodeActive() {
     return false;
 }
 
+void ui_AddSwitchButtons(int button_count, int *active_button_idx, char **labels, int font_size) {
+    UINode *const node = &panel.nodes[panel.nodes_count];
+    node->toolbar.is_switch = true;
+    node->toolbar.switch_active_button_idx = *active_button_idx;
+
+    int button_clicked_idx = ui_AddToolbar(button_count, labels, font_size);
+
+    if (button_clicked_idx != -1) {
+        *active_button_idx = button_clicked_idx;
+        node->toolbar.switch_active_button_idx = button_clicked_idx;
+    }
+}
+
 int ui_AddToolbar(int button_count, char **labels, int font_size) {
     AssertNodeCanBeAdded();
     AddGapIfNeeded();
@@ -867,7 +883,20 @@ Rectangle ui_EndPanel() {
                 DrawRectangleRec(button_rec, color_button_bg);
                 hovered = CheckCollisionPointRec(GetMousePosition(), button_rec);
 
-                DrawRectangleLinesEx(button_rec, 2, hovered ? color_button_border_hover : color_button_border);
+                Color border_color = color_button_border;
+
+                if (hovered) {
+                    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+                        border_color = color_button_border_active;
+                    } else {
+                        border_color = color_button_border_hover;
+                    }
+
+                } else if (node->toolbar.is_switch && i == node->toolbar.switch_active_button_idx) {
+                    border_color = color_button_border_active;
+                }
+
+                DrawRectangleLinesEx(button_rec, 2, border_color);
 
                 text_pos = Vector2AddValue(RectangleGetPosition(button_rec), button_padding);
 
