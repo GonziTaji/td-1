@@ -23,9 +23,15 @@
  */
 
 typedef struct {
-    int id;
     char *label;
-    int *value;
+    void *value;
+
+    enum {
+        INPUT_VALUE_TYPE_INT,
+        INPUT_VALUE_TYPE_FLOAT,
+        INPUT_VALUE_TYPE_TEXT,
+        INPUT_VALUE_TYPE_ENUM,
+    } value_type;
 } InputData;
 
 typedef enum {
@@ -50,6 +56,7 @@ typedef struct {
     int active_input_id;
     EditorStatus path_editor_status;
     int wave_selected_idx;
+    int status_effect_selected_idx;
 
 } EditorState;
 
@@ -68,6 +75,7 @@ static const EditorState editor_initial_state = {
     .active_input_id = 0,
     .path_editor_status = EDITOR_STATUS_NORMAL,
     .wave_selected_idx = 0,
+    .status_effect_selected_idx = 0,
 };
 
 static EditorState editor_state = editor_initial_state;
@@ -137,6 +145,7 @@ static Rectangle DrawTabsHeader(Vector2 position) {
 
     if (active_tab_button != -1) {
         tabs_state.tab_selected = active_tab_button;
+        editor_state.active_input_id = 0;
     }
 
     return ui_EndPanel();
@@ -154,27 +163,115 @@ static Rectangle DrawBulletModsPanel(Vector2 position) {
 }
 
 static Rectangle DrawStatusEffectsPanel(Vector2 position) {
-    ui_StartPanel(position, base_layout);
+    UIMasterDetailPanel layout;
+    ui_MasterDetailBegin(&layout, position, base_layout.gap);
 
-    // char name[32];
-    // int id;
-    // StatusEffectType type;
-    // DurationType duration_type;
-    // ModValueType value_type;
-    //
-    // float value;
-    // float duration;
-    // float dot_interval;
+    ui_MasterDetailBeginMaster(&layout, base_layout);
 
-    const int status_count = status_effect_data_GetEffectsCount();
+    ui_AddTextNode("Status effects", font_sizes.title);
 
-    for (int i = 0; i < status_count; i++) {
-        StatusEffect *effect = status_effect_data_GetMutableStatusData(i);
+    int status_count = status_effect_data_GetEffectsCount();
 
-        ui_AddTextNode(effect->name, font_sizes.subtitle);
+    if (status_count == 0) {
+        editor_state.status_effect_selected_idx = 0;
+        ui_AddTextNode("No status effects available", font_sizes.subtitle);
+    } else {
+        char *effect_labels[EDITOR_UI_COMBOBOX_MAX_OPTIONS];
+        const int capped_count = MIN(status_count, EDITOR_UI_COMBOBOX_MAX_OPTIONS);
+
+        for (int idx = 0; idx < capped_count; idx++) {
+            effect_labels[idx] = status_effect_data_GetMutableStatusData(idx)->name;
+        }
+
+        if (editor_state.status_effect_selected_idx >= capped_count) {
+            editor_state.status_effect_selected_idx = capped_count - 1;
+        }
+
+        const int combobox_id = getId();
+        UIComboBoxProps combo_props = {
+            .label = "Effect:",
+            .options = effect_labels,
+            .options_count = capped_count,
+            .selected_index = &editor_state.status_effect_selected_idx,
+            .font_size = font_sizes.subtitle,
+        };
+
+        UIComboBoxResult combo_result = ui_AddComboBox(&combo_props);
+
+        if (combo_result.activated) {
+            editor_state.active_input_id = combobox_id;
+        } else if (!combo_result.is_open && editor_state.active_input_id == combobox_id) {
+            editor_state.active_input_id = editor_initial_state.active_input_id;
+        }
     }
 
-    return ui_EndPanel();
+    ui_MasterDetailEndMaster(&layout);
+
+    status_count = status_effect_data_GetEffectsCount();
+
+    ui_MasterDetailBeginDetail(&layout, base_layout);
+
+    if (status_count == 0) {
+        ui_AddTextNode("Add status effects in data to edit them here.", font_sizes.text);
+        ui_MasterDetailEndDetail(&layout);
+        return ui_MasterDetailGetBounds(&layout);
+    }
+
+    if (editor_state.status_effect_selected_idx < 0) {
+        editor_state.status_effect_selected_idx = 0;
+    }
+    if (editor_state.status_effect_selected_idx >= status_count) {
+        editor_state.status_effect_selected_idx = status_count - 1;
+    }
+
+    StatusEffect *effect = status_effect_data_GetMutableStatusData(editor_state.status_effect_selected_idx);
+
+    InputData input_data[] = {
+        {.label = "Name", &effect->name, INPUT_VALUE_TYPE_TEXT},
+        {.label = "Status effect type: ", &effect->type, INPUT_VALUE_TYPE_ENUM},
+        {.label = "Duration type: ", &effect->duration_type, INPUT_VALUE_TYPE_INT},
+        {.label = "Value type: ", &effect->value_type, INPUT_VALUE_TYPE_INT},
+        {.label = "Value: ", &effect->value, INPUT_VALUE_TYPE_FLOAT},
+        {.label = "Duration: ", &effect->duration, INPUT_VALUE_TYPE_FLOAT},
+        {.label = "Dot interval: ", &effect->dot_interval, INPUT_VALUE_TYPE_FLOAT},
+    };
+
+    const int input_data_count = (int)(sizeof(input_data) / sizeof(input_data[0]));
+
+    for (int j = 0; j < input_data_count; j++) {
+        const int node_id = getId();
+        const bool is_edit_mode = editor_state.active_input_id == node_id;
+
+        switch (input_data[j].value_type) {
+        case INPUT_VALUE_TYPE_INT:
+            if (ui_AddIntInput(input_data[j].label, input_data[j].value, font_sizes.subtitle, is_edit_mode)) {
+                editor_state.active_input_id = node_id;
+            }
+            break;
+
+        case INPUT_VALUE_TYPE_FLOAT:
+            if (ui_AddFloatInput(input_data[j].label, input_data[j].value, font_sizes.subtitle, is_edit_mode)) {
+                editor_state.active_input_id = node_id;
+            }
+            break;
+
+        case INPUT_VALUE_TYPE_TEXT:
+            if (ui_AddTextInput(input_data[j].label, input_data[j].value, font_sizes.subtitle, is_edit_mode)) {
+                editor_state.active_input_id = node_id;
+            }
+            break;
+
+        case INPUT_VALUE_TYPE_ENUM: {
+            char *options[] = {"A", "B", "C"};
+            ui_AddOptionButton(input_data[j].label, input_data[j].value, options, 3, font_sizes.button);
+            break;
+        }
+        }
+    }
+
+    ui_MasterDetailEndDetail(&layout);
+
+    return ui_MasterDetailGetBounds(&layout);
 }
 
 /// returns the final panel aabb
@@ -332,19 +429,24 @@ static Rectangle DrawScenePanel(Vector2 panel_origin) {
     WaveData *wave = scene_data_GetMutableWave(editor_state.wave_selected_idx);
 
     InputData wave_inputs[] = {
-        {getId(), "Start delay", &wave->startDelaySeconds},
-        {getId(), "Mob type", (int *)&wave->mobType},
-        {getId(), "Mobs quantity", &wave->mobsCount},
+        {"Start delay", &wave->startDelaySeconds},
+        {"Mob type", (int *)&wave->mobType},
+        {"Mobs quantity", &wave->mobsCount},
     };
 
-    const int wave_values_count = sizeof(wave_inputs) / sizeof(InputData);
+    const int wave_values_count = 3;
+
+    int node_id;
+    bool is_edit_mode;
 
     for (int i = 0; i < wave_values_count; i++) {
+
         const InputData *input = &wave_inputs[i];
-        const bool is_edit_mode = editor_state.active_input_id == input->id;
+        node_id = getId();
+        is_edit_mode = editor_state.active_input_id == node_id;
 
         if (ui_AddIntInput(input->label, input->value, font_sizes.input, is_edit_mode)) {
-            editor_state.active_input_id = input->id;
+            editor_state.active_input_id = node_id;
         }
     }
 
@@ -352,7 +454,10 @@ static Rectangle DrawScenePanel(Vector2 panel_origin) {
 }
 
 Rectangle DrawTowersPanel(Vector2 panel_position) {
-    ui_StartPanel(panel_position, base_layout);
+    UIMasterDetailPanel layout;
+    ui_MasterDetailBegin(&layout, panel_position, base_layout.gap);
+
+    ui_MasterDetailBeginMaster(&layout, base_layout);
 
     ui_AddTextNode("Towers", font_sizes.title);
 
@@ -362,21 +467,38 @@ Rectangle DrawTowersPanel(Vector2 panel_position) {
 
     ui_AddSeparator(1);
 
-    ui_AddTextNode("Tower list", font_sizes.subtitle);
+    int tower_types_count = tower_data_getTowerTypeCount();
 
-    ui_AddSeparator(1);
+    if (tower_types_count == 0) {
+        editor_state.tower_selected_id = 0;
+        ui_AddTextNode("No towers defined", font_sizes.subtitle);
+    } else {
+        char *tower_labels[EDITOR_UI_COMBOBOX_MAX_OPTIONS];
+        const int capped_count = MIN(tower_types_count, EDITOR_UI_COMBOBOX_MAX_OPTIONS);
 
-    const int tower_types_count = tower_data_getTowerTypeCount();
-
-    for (int type_id = 0; type_id < tower_types_count; type_id++) {
-        if (type_id == editor_state.tower_selected_id) {
-            snprintf(buffer, sizeof(buffer), "%s >>", tower_data_GetMutableTowerData(type_id)->name);
-        } else {
-            snprintf(buffer, sizeof(buffer), "%s", tower_data_GetMutableTowerData(type_id)->name);
+        for (int type_id = 0; type_id < capped_count; type_id++) {
+            tower_labels[type_id] = tower_data_GetMutableTowerData(type_id)->name;
         }
 
-        if (ui_AddButton(buffer, font_sizes.button)) {
-            editor_state.tower_selected_id = type_id;
+        if (editor_state.tower_selected_id >= capped_count) {
+            editor_state.tower_selected_id = capped_count - 1;
+        }
+
+        const int combobox_id = getId();
+        UIComboBoxProps combo_props = {
+            .label = "Tower:",
+            .options = tower_labels,
+            .options_count = capped_count,
+            .selected_index = &editor_state.tower_selected_id,
+            .font_size = font_sizes.subtitle,
+        };
+
+        UIComboBoxResult combo_result = ui_AddComboBox(&combo_props);
+
+        if (combo_result.activated) {
+            editor_state.active_input_id = combobox_id;
+        } else if (!combo_result.is_open && editor_state.active_input_id == combobox_id) {
+            editor_state.active_input_id = editor_initial_state.active_input_id;
         }
     }
 
@@ -386,11 +508,24 @@ Rectangle DrawTowersPanel(Vector2 panel_position) {
         editor_state.tower_selected_id = tower_data_CreateNewTowerType();
     }
 
-    const Rectangle main_panel_rec = ui_EndPanel();
-    Vector2 selected_tower_panel_origin = {main_panel_rec.x + main_panel_rec.width, main_panel_rec.y};
+    ui_MasterDetailEndMaster(&layout);
 
-    ui_StartPanel(selected_tower_panel_origin, base_layout);
+    tower_types_count = tower_data_getTowerTypeCount();
 
+    ui_MasterDetailBeginDetail(&layout, base_layout);
+
+    if (tower_types_count == 0) {
+        ui_AddTextNode("Add a tower type to start editing its data.", font_sizes.text);
+        ui_MasterDetailEndDetail(&layout);
+        return ui_MasterDetailGetBounds(&layout);
+    }
+
+    if (editor_state.tower_selected_id < 0) {
+        editor_state.tower_selected_id = 0;
+    }
+    if (editor_state.tower_selected_id >= tower_types_count) {
+        editor_state.tower_selected_id = tower_types_count - 1;
+    }
     TowerBaseData *tower_data = tower_data_GetMutableTowerData(editor_state.tower_selected_id);
     TowerAttributes *tower_attrs = &tower_data->attributes;
 
@@ -453,11 +588,9 @@ Rectangle DrawTowersPanel(Vector2 panel_position) {
         tower_data_RemoveTowerData(editor_state.tower_selected_id);
     }
 
-    Rectangle tower_editor_panel_rec = ui_EndPanel();
+    ui_MasterDetailEndDetail(&layout);
 
-    tower_editor_panel_rec.y = main_panel_rec.y;
-
-    return tower_editor_panel_rec;
+    return ui_MasterDetailGetBounds(&layout);
 }
 
 Rectangle DrawInfoPanel(Vector2 panel_origin) {
