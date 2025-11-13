@@ -30,8 +30,12 @@ typedef struct {
         INPUT_VALUE_TYPE_INT,
         INPUT_VALUE_TYPE_FLOAT,
         INPUT_VALUE_TYPE_TEXT,
-        INPUT_VALUE_TYPE_ENUM,
-    } value_type;
+        INPUT_VALUE_TYPE_SWITCH,
+        INPUT_VALUE_TYPE_LIST,
+    } type;
+
+    char **option_labels;
+    int options_count;
 } InputData;
 
 typedef enum {
@@ -127,6 +131,7 @@ typedef enum {
     EDITOR_TAB_COUNT,
 } EditorTab;
 
+// @review: move to editor state maybe?
 struct {
     char *labels[EDITOR_TAB_COUNT];
     EditorTab tab_selected;
@@ -183,20 +188,14 @@ static Rectangle DrawStatusEffectsPanel(Vector2 position) {
         }
 
         const int combobox_id = getId();
-        UIComboBoxProps combo_props = {
-            .label = "Effect:",
-            .options = effect_labels,
-            .options_count = capped_count,
-            .selected_index = &editor_state.status_effect_selected_idx,
-            .font_size = font_sizes.subtitle,
-        };
 
-        UIComboBoxResult combo_result = ui_AddComboBox(&combo_props);
+        if (ui_AddComboBox("Effect:",
+                &editor_state.status_effect_selected_idx,
+                effect_labels,
+                capped_count,
+                font_sizes.subtitle)) {
 
-        if (combo_result.activated) {
             editor_state.active_input_id = combobox_id;
-        } else if (!combo_result.is_open && editor_state.active_input_id == combobox_id) {
-            editor_state.active_input_id = editor_initial_state.active_input_id;
         }
     }
 
@@ -222,13 +221,33 @@ static Rectangle DrawStatusEffectsPanel(Vector2 position) {
     StatusEffect *effect = status_effect_data_GetMutableStatusData(editor_state.status_effect_selected_idx);
 
     InputData input_data[] = {
-        {.label = "Name", &effect->name, INPUT_VALUE_TYPE_TEXT},
-        {.label = "Status effect type: ", &effect->type, INPUT_VALUE_TYPE_ENUM},
-        {.label = "Duration type: ", &effect->duration_type, INPUT_VALUE_TYPE_INT},
-        {.label = "Value type: ", &effect->value_type, INPUT_VALUE_TYPE_INT},
-        {.label = "Value: ", &effect->value, INPUT_VALUE_TYPE_FLOAT},
-        {.label = "Duration: ", &effect->duration, INPUT_VALUE_TYPE_FLOAT},
-        {.label = "Dot interval: ", &effect->dot_interval, INPUT_VALUE_TYPE_FLOAT},
+        {.label = "Name:", .value = &effect->name, .type = INPUT_VALUE_TYPE_TEXT},
+
+        {.label = "Status effect type:",
+            .value = &effect->type,
+            .type = INPUT_VALUE_TYPE_LIST,
+            .option_labels = status_effect_data_GetEffectTypeLabels(),
+            .options_count = STATUS_EFFECT_TYPE_COUNT},
+
+        {
+            .label = "Duration type:",
+            .value = &effect->duration_type,
+            .type = INPUT_VALUE_TYPE_LIST,
+            .option_labels = utils_GetAllDurationTypeLabels(),
+            .options_count = DURATION_TYPE_COUNT,
+        },
+
+        {.label = "Value type:",
+            .value = &effect->value_type,
+            .type = INPUT_VALUE_TYPE_LIST,
+            .option_labels = utils_GetModValueTypeLabels(),
+            .options_count = MOD_VALUE_TYPE_COUNT},
+
+        {.label = "Value:", &effect->value, INPUT_VALUE_TYPE_FLOAT},
+
+        {.label = "Duration:", &effect->duration, INPUT_VALUE_TYPE_FLOAT},
+
+        {.label = "Dot interval:", &effect->dot_interval, INPUT_VALUE_TYPE_FLOAT},
     };
 
     const int input_data_count = (int)(sizeof(input_data) / sizeof(input_data[0]));
@@ -237,7 +256,7 @@ static Rectangle DrawStatusEffectsPanel(Vector2 position) {
         const int node_id = getId();
         const bool is_edit_mode = editor_state.active_input_id == node_id;
 
-        switch (input_data[j].value_type) {
+        switch (input_data[j].type) {
         case INPUT_VALUE_TYPE_INT:
             if (ui_AddIntInput(input_data[j].label, input_data[j].value, font_sizes.subtitle, is_edit_mode)) {
                 editor_state.active_input_id = node_id;
@@ -256,9 +275,20 @@ static Rectangle DrawStatusEffectsPanel(Vector2 position) {
             }
             break;
 
-        case INPUT_VALUE_TYPE_ENUM: {
-            char *options[] = {"A", "B", "C"};
-            ui_AddOptionButton(input_data[j].label, input_data[j].value, options, 3, font_sizes.button);
+        case INPUT_VALUE_TYPE_SWITCH: {
+            ui_AddOptionsButton(input_data[j].label,
+                input_data[j].value,
+                input_data[j].option_labels,
+                input_data[j].options_count,
+                font_sizes.button);
+            break;
+        }
+        case INPUT_VALUE_TYPE_LIST: {
+            ui_AddComboBox(input_data[j].label,
+                input_data[j].value,
+                input_data[j].option_labels,
+                input_data[j].options_count,
+                font_sizes.button);
             break;
         }
         }
@@ -480,20 +510,14 @@ Rectangle DrawTowersPanel(Vector2 panel_position) {
         }
 
         const int combobox_id = getId();
-        UIComboBoxProps combo_props = {
-            .label = "Tower:",
-            .options = tower_labels,
-            .options_count = capped_count,
-            .selected_index = &editor_state.tower_selected_id,
-            .font_size = font_sizes.subtitle,
-        };
 
-        UIComboBoxResult combo_result = ui_AddComboBox(&combo_props);
+        if (ui_AddComboBox("Tower:",
+                &editor_state.tower_selected_id,
+                tower_labels,
+                capped_count,
+                font_sizes.subtitle)) {
 
-        if (combo_result.activated) {
             editor_state.active_input_id = combobox_id;
-        } else if (!combo_result.is_open && editor_state.active_input_id == combobox_id) {
-            editor_state.active_input_id = editor_initial_state.active_input_id;
         }
     }
 
@@ -534,10 +558,6 @@ Rectangle DrawTowersPanel(Vector2 panel_position) {
         editor_state.active_input_id = element_id;
     }
 
-    // Color tower_color;
-    // Color bullet_color;
-    // int bullet_width;
-
     for (TowerAttributeType attr_type = 0; attr_type < TOWER_ATTR_COUNT; attr_type++) {
         snprintf(buffer, sizeof(buffer), "%s: ", tower_mod_data_GetAttrLabel(attr_type));
 
@@ -549,25 +569,21 @@ Rectangle DrawTowersPanel(Vector2 panel_position) {
         case TOWER_ATTR_RANGE:
         case TOWER_ATTR_BULLET_SPEED:
         case TOWER_ATTR_MULTISHOT: {
-            int int_value = tower_attrs->values[attr_type];
-            if (ui_AddIntInput(buffer, &int_value, font_sizes.text, is_edit_mode)) {
+            int value = tower_attrs->values[attr_type];
+            if (ui_AddIntInput(buffer, &value, font_sizes.text, is_edit_mode)) {
                 editor_state.active_input_id = element_id;
             }
 
-            tower_attrs->values[attr_type] = int_value;
+            tower_attrs->values[attr_type] = value;
 
             break;
         }
 
         case TOWER_ATTR_RATE_OF_FIRE:
         case TOWER_ATTR_CRIT_CHANCE_PERCENT: {
-            int int_value = tower_attrs->values[attr_type] * 100;
-
-            if (ui_AddIntInput(buffer, &int_value, font_sizes.text, is_edit_mode)) {
+            if (ui_AddFloatInput(buffer, &tower_attrs->values[attr_type], font_sizes.text, is_edit_mode)) {
                 editor_state.active_input_id = element_id;
             }
-
-            tower_attrs->values[attr_type] = (float)int_value / 100;
 
             break;
         }
@@ -578,6 +594,7 @@ Rectangle DrawTowersPanel(Vector2 panel_position) {
         }
     }
 
+    // TODO: confirmation mechanism
     if (tower_types_count > 1 && ui_AddButton("Delete tower", font_sizes.button)) {
         towers_clear();
         tower_data_RemoveTowerData(editor_state.tower_selected_id);

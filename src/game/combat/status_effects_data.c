@@ -144,4 +144,29 @@ StatusEffect *status_effect_data_GetMutableStatusData(int effect_id) {
     return &status_effects.data[effect_id];
 }
 
+char **status_effect_data_GetEffectTypeLabels() {
+    static char *labels[STATUS_EFFECT_TYPE_COUNT];
+
+    for (StatusEffectType type = 0; type < STATUS_EFFECT_TYPE_COUNT; type++) {
+        switch (type) {
+        case STATUS_EFFECT_TYPE_SLOW:
+            labels[type] = "Slow";
+            break;
+        case STATUS_EFFECT_TYPE_DOT:
+            labels[type] = "DOT";
+            break;
+        case STATUS_EFFECT_TYPE_STUN:
+            labels[type] = "Stun";
+            break;
+        case STATUS_EFFECT_TYPE_DETONATE_ON_DEATH:
+            labels[type] = "Detonate";
+            break;
+        case STATUS_EFFECT_TYPE_COUNT:
+            assert(false && "Invalid status effect type");
+        }
+    }
+
+    return labels;
+}
+
 #endif

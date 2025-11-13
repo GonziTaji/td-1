@@ -9,11 +9,13 @@
 typedef enum {
     DURATION_TYPE_PERMANENT,
     DURATION_TYPE_TEMPORARY,
+    DURATION_TYPE_COUNT,
 } DurationType;
 
 typedef enum {
     MOD_VALUE_TYPE_FLAT,
     MOD_VALUE_TYPE_MULTIPLIER,
+    MOD_VALUE_TYPE_COUNT,
 } ModValueType;
 
 typedef struct {
@@ -44,3 +46,11 @@ Rectangle Vector2ToRec(Vector2 pos, Vector2 size);
 // rectangle utils
 Vector2 RectangleGetPosition(Rectangle rec);
 Vector2 RectangleGetSize(Rectangle rec);
+
+#ifdef ENABLE_EDITOR
+
+char *utils_GetDurationTypeLabel(DurationType type);
+char **utils_GetAllDurationTypeLabels();
+char **utils_GetModValueTypeLabels();
+
+#endif

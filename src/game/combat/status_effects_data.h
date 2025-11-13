@@ -7,6 +7,7 @@ typedef enum {
     STATUS_EFFECT_TYPE_DOT,
     STATUS_EFFECT_TYPE_STUN,
     STATUS_EFFECT_TYPE_DETONATE_ON_DEATH,
+    STATUS_EFFECT_TYPE_COUNT,
 } StatusEffectType;
 
 typedef struct {
@@ -28,5 +29,6 @@ bool status_effect_data_load();
 
 int status_effect_data_GetEffectsCount();
 StatusEffect *status_effect_data_GetMutableStatusData(int effect_id);
+char **status_effect_data_GetEffectTypeLabels();
 
 #endif

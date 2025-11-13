@@ -39,6 +39,9 @@ static const int input_label_padding = 5;
 // other
 static const int input_int_width = 50;
 static const int input_text_min_width = 150;
+static const int combo_min_width = 100;
+static const int combo_arrow_size = 6;
+static const int combo_arrow_padding = 10;
 
 typedef struct {
     int font_size;
@@ -64,8 +67,8 @@ typedef struct {
 } UITextNode;
 
 typedef struct {
-    int id;
-    UITextNode text_node;
+    int font_size;
+    char text[EDITOR_UI_MAX_CHARS_TEXT_NODE];
 } UIButtonNode;
 
 typedef struct {
@@ -134,6 +137,143 @@ typedef struct {
 static UIFloatInputState float_inputs[EDITOR_UI_MAX_FLOAT_INPUTS] = {0};
 
 static UIComboBoxState combobox_states[EDITOR_UI_MAX_COMBOBOXES] = {0};
+
+static void DrawSeparatorNode(UINode *const node) {
+    if (panel.layout.direction == LAYOUT_DIR_COL) {
+        node->aabb.width = panel.bounds.width - (panel.layout.padding * 2);
+    } else {
+        node->aabb.height = panel.bounds.height - (panel.layout.padding * 2);
+    }
+
+    DrawRectangleRec(node->aabb, color_separator_bg);
+}
+
+static void DrawTextNode(UINode *const node) {
+    DrawTextEx(uiFont,
+        node->text_box.text,
+        (Vector2){node->aabb.x, node->aabb.y},
+        node->text_box.font_size,
+        0,
+        color_text);
+}
+
+static void DrawButtonNode(UINode *const node) {
+    DrawRectangleRec(node->aabb, color_button_bg);
+
+    bool hovered = CheckCollisionPointRec(GetMousePosition(), node->aabb);
+    DrawRectangleLinesEx(node->aabb, 2, hovered ? color_button_border_hover : color_button_border);
+
+    Vector2 text_pos = Vector2AddValue((Vector2){node->aabb.x, node->aabb.y}, input_padding);
+    DrawTextEx(uiFont, node->button.text, text_pos, node->button.font_size, 0, color_text);
+}
+
+static void DrawToolbarNode(UINode *const node) {
+    Vector2 text_pos = {0};
+    bool hovered = false;
+
+    for (int i = 0; i < node->toolbar.button_count; i++) {
+        Rectangle button_rec = node->toolbar.buttons_aabb[i];
+
+        DrawRectangleRec(button_rec, color_button_bg);
+        hovered = CheckCollisionPointRec(GetMousePosition(), button_rec);
+
+        Color border_color = color_button_border;
+
+        if (hovered) {
+            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+                border_color = color_button_border_active;
+            } else {
+                border_color = color_button_border_hover;
+            }
+
+        } else if (node->toolbar.is_switch && i == node->toolbar.switch_active_button_idx) {
+            border_color = color_button_border_active;
+        }
+
+        DrawRectangleLinesEx(button_rec, 2, border_color);
+
+        text_pos = Vector2AddValue(RectangleGetPosition(button_rec), button_padding);
+        DrawTextEx(uiFont, node->toolbar.labels[i], text_pos, node->toolbar.font_size, 0, color_text);
+    }
+}
+
+static void DrawInput(UINode *const node) {
+    Vector2 input_node_cursor = RectangleGetPosition(node->aabb);
+    Rectangle input_box_aabb = node->aabb;
+
+    if (node->input.label_width > 0) {
+        Vector2 label_pos = input_node_cursor;
+        label_pos.y += input_padding;
+
+        DrawTextEx(uiFont, node->input.label, label_pos, node->input.font_size, 0, color_text);
+
+        input_node_cursor.x += node->input.label_width;
+        input_box_aabb.x += node->input.label_width;
+        input_box_aabb.width -= node->input.label_width;
+    }
+
+    DrawRectangleRec(input_box_aabb, color_input_bg);
+
+    bool hovered = CheckCollisionPointRec(GetMousePosition(), node->aabb);
+
+    Color border_color = color_input_border;
+
+    if (node->input.active || (hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))) {
+        border_color = color_input_border_active;
+    }
+
+    DrawRectangleLinesEx(input_box_aabb, 2, border_color);
+
+    Vector2 text_pos = Vector2AddValue((Vector2){input_box_aabb.x, input_box_aabb.y}, input_padding);
+    DrawTextEx(uiFont, node->input.text_value, text_pos, node->input.font_size, 0, color_text);
+}
+
+static void DrawComboboxNode(UINode *const node) {
+    Vector2 mouse_position = GetMousePosition();
+
+    if (node->combobox.label_width > 0) {
+        Vector2 label_pos = {
+            node->aabb.x,
+            node->aabb.y + input_padding,
+        };
+        DrawTextEx(uiFont, node->combobox.label, label_pos, node->combobox.font_size, 0, color_text);
+    }
+
+    Rectangle combo_box = node->combobox.box_bounds;
+
+    DrawRectangleRec(combo_box, color_input_bg);
+
+    Color border_color = node->combobox.state->open ? color_input_border_active : color_input_border;
+
+    if (CheckCollisionPointRec(mouse_position, combo_box)) {
+        border_color = color_input_border_active;
+    }
+
+    DrawRectangleLinesEx(combo_box, 2, border_color);
+
+    const int selected_index = (node->combobox.state->selected_ptr != NULL) ? *node->combobox.state->selected_ptr : -1;
+    const bool has_selection = selected_index >= 0 && selected_index < node->combobox.option_count;
+    const char *display_text = has_selection ? node->combobox.options[selected_index] : "-";
+
+    Vector2 combo_text_pos = {
+        combo_box.x + input_padding,
+        combo_box.y + input_padding,
+    };
+
+    DrawTextEx(uiFont, display_text, combo_text_pos, node->combobox.font_size, 0, color_text);
+
+    Vector2 arrow_center = {
+        combo_box.x + combo_box.width - (input_padding * 2) - combo_arrow_padding,
+        combo_box.y + (combo_box.height / 2.0f),
+    };
+    Vector2 arrow_points[3] = {
+        {arrow_center.x + combo_arrow_size, arrow_center.y - (combo_arrow_size / 2.0f)},
+        {arrow_center.x - combo_arrow_size, arrow_center.y - (combo_arrow_size / 2.0f)},
+        {arrow_center.x, arrow_center.y + (combo_arrow_size / 2.0f)},
+    };
+
+    DrawTriangle(arrow_points[0], arrow_points[1], arrow_points[2], color_text);
+}
 
 static UIFloatInputState *GetFloatInputState(float *value_ptr) {
     UIFloatInputState *available_slot = NULL;
@@ -246,6 +386,29 @@ static void AssertNodeCanBeAdded() {
     assert(panel.nodes_count < EDITOR_UI_MAX_PANEL_NODES && "Number of ui nodes in a panel exceeded");
 }
 
+static void CommitNewNode() {
+    const UINode *const node = &panel.nodes[panel.nodes_count];
+    panel.nodes_count++;
+
+    const int double_padding = panel.layout.padding * 2;
+
+    if (panel.layout.direction == LAYOUT_DIR_COL) {
+        cursor_current_pos.y += node->aabb.height;
+
+        float new_panel_width = node->aabb.x + node->aabb.width - panel.bounds.x + double_padding;
+        if (panel.bounds.width < new_panel_width) {
+            panel.bounds.width = new_panel_width;
+        }
+    } else {
+        cursor_current_pos.x += node->aabb.width;
+
+        float new_panel_height = node->aabb.y + node->aabb.height - panel.bounds.y + double_padding;
+        if (panel.bounds.height < new_panel_height) {
+            panel.bounds.height = new_panel_height;
+        }
+    }
+}
+
 static IsActive AddInput(InputType type, char *label, char *text_value, void *value, int font_size, bool is_edit_mode) {
     AssertNodeCanBeAdded();
     AddGapIfNeeded();
@@ -285,25 +448,7 @@ static IsActive AddInput(InputType type, char *label, char *text_value, void *va
         node->input.label_width = 0;
     }
 
-    panel.nodes_count++;
-
-    const int double_padding = panel.layout.padding * 2;
-
-    if (panel.layout.direction == LAYOUT_DIR_COL) {
-        cursor_current_pos.y += node->aabb.height;
-
-        float total_node_width = node->aabb.width + double_padding;
-        if (panel.bounds.width < total_node_width) {
-            panel.bounds.width = total_node_width;
-        }
-    } else {
-        cursor_current_pos.x += node->aabb.width;
-
-        float total_node_height = node->aabb.height + double_padding;
-        if (panel.bounds.height < total_node_height) {
-            panel.bounds.height = total_node_height;
-        }
-    }
+    CommitNewNode();
 
     if (is_edit_mode) {
         bool value_has_changed = false;
@@ -411,21 +556,8 @@ IsActive ui_AddFloatInput(char *label, float *value, int font_size, bool is_edit
     return result;
 }
 
-UIComboBoxResult ui_AddComboBox(const UIComboBoxProps *props) {
-    assert(props != NULL);
-    assert(props->selected_index != NULL);
-
-    UIComboBoxResult result = {0};
-
-    if (props->options_count < 0) {
-        return result;
-    }
-
-    UIComboBoxState *state = GetComboBoxState(props->selected_index);
-
-    if (!state) {
-        return result;
-    }
+IsActive ui_AddComboBox(const char *label, int *value, char **options, int options_count, int font_size) {
+    UIComboBoxState *state = GetComboBoxState(value);
 
     AssertNodeCanBeAdded();
     AddGapIfNeeded();
@@ -433,54 +565,57 @@ UIComboBoxResult ui_AddComboBox(const UIComboBoxProps *props) {
     UINode *const node = &panel.nodes[panel.nodes_count];
 
     node->type = NODE_TYPE_COMBOBOX;
-    node->combobox.font_size = props->font_size;
+    node->combobox.font_size = font_size;
     node->combobox.state = state;
     node->combobox.label_width = 0;
     node->combobox.label[0] = '\0';
 
-    if (props->label != NULL && props->label[0] != '\0') {
-        strncpy(node->combobox.label, props->label, sizeof(node->combobox.label) - 1);
+    if (label != NULL && label[0] != '\0') {
+        strncpy(node->combobox.label, label, sizeof(node->combobox.label) - 1);
         node->combobox.label[sizeof(node->combobox.label) - 1] = '\0';
-        node->combobox.label_width
-            = MeasureTextEx(uiFont, node->combobox.label, props->font_size, 0).x + input_label_padding;
+        node->combobox.label_width = MeasureTextEx(uiFont, node->combobox.label, font_size, 0).x + input_label_padding;
     }
 
-    node->combobox.option_count = props->options_count;
+    node->combobox.option_count = options_count;
     if (node->combobox.option_count > EDITOR_UI_COMBOBOX_MAX_OPTIONS) {
         node->combobox.option_count = EDITOR_UI_COMBOBOX_MAX_OPTIONS;
     }
 
     for (int i = 0; i < node->combobox.option_count; i++) {
-        node->combobox.options[i] = props->options[i];
+        node->combobox.options[i] = options[i];
     }
 
     if (node->combobox.option_count == 0) {
-        *props->selected_index = -1;
+        *value = -1;
         state->open = false;
-    } else if (*props->selected_index < 0 || *props->selected_index >= node->combobox.option_count) {
-        *props->selected_index = 0;
+    } else if (*value < 0 || *value >= node->combobox.option_count) {
+        *value = 0;
     }
 
     const char *selected_text = "-";
-    if (node->combobox.option_count > 0 && *props->selected_index >= 0) {
-        selected_text = node->combobox.options[*props->selected_index];
+    if (node->combobox.option_count > 0 && *value >= 0) {
+        selected_text = node->combobox.options[*value];
     }
 
-    float max_option_width = MeasureTextEx(uiFont, selected_text, props->font_size, 0).x;
+    float max_option_width = MeasureTextEx(uiFont, selected_text, font_size, 0).x;
+
     for (int i = 0; i < node->combobox.option_count; i++) {
-        float option_width = MeasureTextEx(uiFont, node->combobox.options[i], props->font_size, 0).x;
+        float option_width = MeasureTextEx(uiFont, node->combobox.options[i], font_size, 0).x;
+
+        option_width += combo_arrow_padding + (combo_arrow_padding * 2);
+
         if (option_width > max_option_width) {
             max_option_width = option_width;
         }
     }
 
-    float combo_box_width = MAX(input_text_min_width, max_option_width + (input_padding * 2));
+    float combo_box_width = MAX(combo_min_width, max_option_width + (input_padding * 2));
 
     node->aabb = (Rectangle){
         cursor_current_pos.x,
         cursor_current_pos.y,
         combo_box_width + node->combobox.label_width,
-        props->font_size + (input_padding * 2),
+        font_size + (input_padding * 2),
     };
 
     node->combobox.box_bounds = (Rectangle){
@@ -490,32 +625,18 @@ UIComboBoxResult ui_AddComboBox(const UIComboBoxProps *props) {
         node->aabb.height,
     };
 
-    node->combobox.option_height = props->font_size + (input_padding * 2);
+    node->combobox.option_height = font_size + (input_padding * 2);
 
     node->combobox.dropdown_bounds = (Rectangle){
         node->combobox.box_bounds.x,
-        node->combobox.box_bounds.y + node->combobox.box_bounds.height,
+        node->combobox.box_bounds.y + node->combobox.box_bounds.height + 5,
         node->combobox.box_bounds.width,
         node->combobox.option_height * node->combobox.option_count,
     };
 
-    panel.nodes_count++;
+    CommitNewNode();
 
-    const int double_padding = panel.layout.padding * 2;
-
-    if (panel.layout.direction == LAYOUT_DIR_COL) {
-        cursor_current_pos.y += node->aabb.height;
-        float total_node_width = node->aabb.width + double_padding;
-        if (panel.bounds.width < total_node_width) {
-            panel.bounds.width = total_node_width;
-        }
-    } else {
-        cursor_current_pos.x += node->aabb.width;
-        float total_node_height = node->aabb.height + double_padding;
-        if (panel.bounds.height < total_node_height) {
-            panel.bounds.height = total_node_height;
-        }
-    }
+    IsActive isActive = false;
 
     Vector2 mouse_pos = GetMousePosition();
     bool main_hovered = CheckCollisionPointRec(mouse_pos, node->combobox.box_bounds);
@@ -532,9 +653,8 @@ UIComboBoxResult ui_AddComboBox(const UIComboBoxProps *props) {
             };
 
             if (CheckCollisionPointRec(mouse_pos, option_rect)) {
-                if (*props->selected_index != i) {
-                    *props->selected_index = i;
-                    result.selection_changed = true;
+                if (*value != i) {
+                    *value = i;
                 }
 
                 state->open = false;
@@ -548,7 +668,7 @@ UIComboBoxResult ui_AddComboBox(const UIComboBoxProps *props) {
         state->open = !state->open;
         active_node_found = true;
         if (state->open) {
-            result.activated = true;
+            isActive = true;
         }
     }
 
@@ -559,9 +679,7 @@ UIComboBoxResult ui_AddComboBox(const UIComboBoxProps *props) {
         }
     }
 
-    result.is_open = state->open;
-
-    return result;
+    return isActive;
 }
 
 IsActive ui_AddTextInput(char *label, char *text_value, int font_size, bool is_edit_mode) {
@@ -669,39 +787,52 @@ int ui_AddToolbar(int button_count, char **labels, int font_size) {
 
     node->aabb.width = toolbar_cursor.x - node->aabb.x;
 
-    panel.nodes_count++;
-
-    const int double_padding = panel.layout.padding * 2;
-
-    if (panel.layout.direction == LAYOUT_DIR_COL) {
-        cursor_current_pos.y += node->aabb.height;
-
-        float total_node_width = node->aabb.width + double_padding;
-        if (panel.bounds.width < total_node_width) {
-            panel.bounds.width = total_node_width;
-        }
-    } else {
-        cursor_current_pos.x += node->aabb.width;
-
-        float total_node_height = node->aabb.height + double_padding;
-        if (panel.bounds.height < total_node_height) {
-            panel.bounds.height = total_node_height;
-        }
-    }
+    CommitNewNode();
 
     return active_button_idx;
 }
 
-void ui_AddOptionButton(const char *label, int *value, char **options, int option_count, int font_size) {
+void ui_AddOptionsButton(const char *label, int *value, char **options, int options_count, int font_size) {
+    const Vector2 text_dimensions = MeasureTextEx(uiFont, label, font_size, 0);
+
+    float label_width = input_label_padding + text_dimensions.x;
+
+    cursor_current_pos.x += label_width;
     const IsActive isActive = ui_AddButton(options[*value], font_size);
+    cursor_current_pos.x -= label_width;
 
     if (isActive) {
         (*value)++;
 
-        if (*value >= option_count) {
+        if (*value >= options_count) {
             *value = 0;
         }
     };
+
+    AssertNodeCanBeAdded();
+
+    const UINode *const button_node = &panel.nodes[panel.nodes_count - 1];
+    const Rectangle button_aabb = button_node->aabb;
+
+    UINode *const label_node = &panel.nodes[panel.nodes_count];
+    *label_node = (UINode){0};
+    label_node->type = NODE_TYPE_TEXT;
+    label_node->text_box.font_size = font_size;
+    label_node->aabb.x = cursor_current_pos.x;
+    label_node->aabb.y = button_aabb.y + (button_aabb.height / 2) - (text_dimensions.y / 2);
+    label_node->aabb.height = text_dimensions.y;
+    label_node->aabb.width = label_width;
+
+    memcpy(label_node->text_box.text, label, EDITOR_UI_MAX_CHARS_TEXT_NODE);
+
+    // adjustment before commit. Label dimensions are already accounted for
+    if (panel.layout.direction == LAYOUT_DIR_COL) {
+        cursor_current_pos.y -= label_node->aabb.height;
+    } else {
+        cursor_current_pos.x -= label_node->aabb.width;
+    }
+
+    CommitNewNode();
 }
 
 IsActive ui_AddButton(char *text, int font_size) {
@@ -710,11 +841,14 @@ IsActive ui_AddButton(char *text, int font_size) {
 
     UINode *const node = &panel.nodes[panel.nodes_count];
 
+    *node = (UINode){0};
     node->type = NODE_TYPE_BUTTON;
-    node->text_box.font_size = font_size;
-    memcpy(node->text_box.text, text, EDITOR_UI_MAX_CHARS_TEXT_NODE);
 
-    Vector2 dimensions = MeasureTextEx(uiFont, node->text_box.text, font_size, 0);
+    node->button.font_size = font_size;
+
+    memcpy(node->button.text, text, EDITOR_UI_MAX_CHARS_TEXT_NODE);
+
+    Vector2 dimensions = MeasureTextEx(uiFont, node->button.text, font_size, 0);
     dimensions = Vector2AddValue(dimensions, button_padding * 2);
 
     if (dimensions.x < EDITOR_UI_BUTTON_MIN_WIDTH) {
@@ -726,25 +860,7 @@ IsActive ui_AddButton(char *text, int font_size) {
     node->aabb.width = dimensions.x;
     node->aabb.height = dimensions.y;
 
-    panel.nodes_count++;
-
-    const int double_padding = panel.layout.padding * 2;
-
-    if (panel.layout.direction == LAYOUT_DIR_COL) {
-        cursor_current_pos.y += node->aabb.height;
-
-        float total_node_width = node->aabb.width + double_padding;
-        if (panel.bounds.width < total_node_width) {
-            panel.bounds.width = total_node_width;
-        }
-    } else {
-        cursor_current_pos.x += node->aabb.width;
-
-        float total_node_height = node->aabb.height + double_padding;
-        if (panel.bounds.height < total_node_height) {
-            panel.bounds.height = total_node_height;
-        }
-    }
+    CommitNewNode();
 
     // Only detect one click per frame
     if (active_node_found == false && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
@@ -770,15 +886,7 @@ void ui_AddSeparator(int thickness) {
     node->aabb.width = 0;
     node->aabb.height = 0;
 
-    if (panel.layout.direction == LAYOUT_DIR_COL) {
-        node->aabb.height = thickness;
-        cursor_current_pos.y += thickness;
-    } else {
-        node->aabb.width = thickness;
-        cursor_current_pos.x += thickness;
-    }
-
-    panel.nodes_count++;
+    CommitNewNode();
 }
 
 void ui_AddTextNode(char *text, int font_size) {
@@ -800,195 +908,58 @@ void ui_AddTextNode(char *text, int font_size) {
         text_measurements.y,
     };
 
-    const int double_padding = panel.layout.padding * 2;
-
-    if (panel.layout.direction == LAYOUT_DIR_COL) {
-        cursor_current_pos.y += node->aabb.height;
-
-        float total_node_width = node->aabb.width + double_padding;
-        if (panel.bounds.width < total_node_width) {
-            panel.bounds.width = total_node_width;
-        }
-    } else {
-        cursor_current_pos.x += node->aabb.width;
-
-        float total_node_height = node->aabb.height + double_padding;
-        if (panel.bounds.height < total_node_height) {
-            panel.bounds.height = total_node_height;
-        }
-    }
-
-    panel.nodes_count++;
+    CommitNewNode();
 }
 
 /// returns final panel bounds
 Rectangle ui_EndPanel() {
     assert(is_started && "Panel must be started to end it");
 
-    Rectangle panel_rec = panel.bounds;
-
     Vector2 cursor_delta = Vector2Subtract(cursor_current_pos, cursor_initial_pos);
 
     if (panel.layout.direction == LAYOUT_DIR_COL) {
-        panel_rec.height = cursor_delta.y + (panel.layout.padding * 2);
+        panel.bounds.height = cursor_delta.y + (panel.layout.padding * 2);
     } else {
-        panel_rec.width = cursor_delta.x + (panel.layout.padding * 2);
+        panel.bounds.width = cursor_delta.x + (panel.layout.padding * 2);
     }
 
-    DrawRectangleRec(panel_rec, color_panel_bg);
+    DrawRectangleRec(panel.bounds, color_panel_bg);
 
     bool hovered = false;
-    Vector2 text_pos = {0};
-    int open_combobox_idx = -1;
+
+    int open_combo_idx = -1;
 
     for (int i = 0; i < panel.nodes_count; i++) {
         UINode *const node = &panel.nodes[i];
 
         switch (node->type) {
         case NODE_TYPE_SEPARATOR:
-            if (panel.layout.direction == LAYOUT_DIR_COL) {
-                node->aabb.width = panel_rec.width - (panel.layout.padding * 2);
-            } else {
-                node->aabb.height = panel_rec.height - (panel.layout.padding * 2);
-            }
-            DrawRectangleRec(node->aabb, color_separator_bg);
+            DrawSeparatorNode(node);
             break;
 
         case NODE_TYPE_TEXT:
-            DrawTextEx(uiFont,
-                node->text_box.text,
-                (Vector2){node->aabb.x, node->aabb.y},
-                node->text_box.font_size,
-                0,
-                color_text);
-
+            DrawTextNode(node);
             break;
 
         case NODE_TYPE_BUTTON:
-            DrawRectangleRec(node->aabb, color_button_bg);
-
-            hovered = CheckCollisionPointRec(GetMousePosition(), node->aabb);
-
-            DrawRectangleLinesEx(node->aabb, 2, hovered ? color_button_border_hover : color_button_border);
-
-            text_pos = Vector2AddValue((Vector2){node->aabb.x, node->aabb.y}, input_padding);
-
-            DrawTextEx(uiFont, node->text_box.text, text_pos, node->text_box.font_size, 0, color_text);
+            DrawButtonNode(node);
             break;
 
         case NODE_TYPE_TOOL_BAR:
-            for (int i = 0; i < node->toolbar.button_count; i++) {
-                Rectangle button_rec = node->toolbar.buttons_aabb[i];
-
-                DrawRectangleRec(button_rec, color_button_bg);
-                hovered = CheckCollisionPointRec(GetMousePosition(), button_rec);
-
-                Color border_color = color_button_border;
-
-                if (hovered) {
-                    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-                        border_color = color_button_border_active;
-                    } else {
-                        border_color = color_button_border_hover;
-                    }
-
-                } else if (node->toolbar.is_switch && i == node->toolbar.switch_active_button_idx) {
-                    border_color = color_button_border_active;
-                }
-
-                DrawRectangleLinesEx(button_rec, 2, border_color);
-
-                text_pos = Vector2AddValue(RectangleGetPosition(button_rec), button_padding);
-
-                DrawTextEx(uiFont, node->toolbar.labels[i], text_pos, node->toolbar.font_size, 0, color_text);
-            }
-
+            DrawToolbarNode(node);
             break;
 
-        case NODE_TYPE_INPUT: {
-            Vector2 input_node_cursor = RectangleGetPosition(node->aabb);
-            Rectangle input_box_aabb = node->aabb;
-
-            if (node->input.label_width > 0) {
-                Vector2 label_pos = input_node_cursor;
-                label_pos.y += input_padding;
-
-                DrawTextEx(uiFont, node->input.label, label_pos, node->input.font_size, 0, color_text);
-
-                input_node_cursor.x += node->input.label_width;
-                input_box_aabb.x += node->input.label_width;
-                input_box_aabb.width -= node->input.label_width;
-            }
-
-            DrawRectangleRec(input_box_aabb, color_input_bg);
-
-            hovered = CheckCollisionPointRec(GetMousePosition(), node->aabb);
-
-            const Color border_color = node->input.active ? color_input_border_active : color_input_border;
-
-            DrawRectangleLinesEx(input_box_aabb, 2, border_color);
-
-            text_pos = Vector2AddValue((Vector2){input_box_aabb.x, input_box_aabb.y}, input_padding);
-
-            DrawTextEx(uiFont, node->input.text_value, text_pos, node->input.font_size, 0, color_text);
+        case NODE_TYPE_INPUT:
+            DrawInput(node);
             break;
-        }
 
-        case NODE_TYPE_COMBOBOX: {
-            Vector2 mouse_position = GetMousePosition();
+        case NODE_TYPE_COMBOBOX:
+            DrawComboboxNode(node);
 
-            if (node->combobox.label_width > 0) {
-                Vector2 label_pos = {
-                    node->aabb.x,
-                    node->aabb.y + input_padding,
-                };
-                DrawTextEx(uiFont, node->combobox.label, label_pos, node->combobox.font_size, 0, color_text);
+            if (open_combo_idx == -1 && node->combobox.state->open) {
+                open_combo_idx = i;
             }
-
-            Rectangle combo_box = node->combobox.box_bounds;
-
-            DrawRectangleRec(combo_box, color_input_bg);
-
-            bool combo_hovered = CheckCollisionPointRec(mouse_position, combo_box);
-
-            Color border_color = node->combobox.state->open ? color_input_border_active : color_input_border;
-            if (combo_hovered) {
-                border_color = color_input_border_active;
-            }
-
-            DrawRectangleLinesEx(combo_box, 2, border_color);
-
-            const int selected_index
-                = (node->combobox.state->selected_ptr != NULL) ? *node->combobox.state->selected_ptr : -1;
-            const bool has_selection = selected_index >= 0 && selected_index < node->combobox.option_count;
-            const char *display_text = has_selection ? node->combobox.options[selected_index] : "-";
-
-            Vector2 combo_text_pos = {
-                combo_box.x + input_padding,
-                combo_box.y + input_padding,
-            };
-
-            DrawTextEx(uiFont, display_text, combo_text_pos, node->combobox.font_size, 0, color_text);
-
-            float arrow_size = 6.0f;
-            Vector2 arrow_center = {
-                combo_box.x + combo_box.width - (input_padding * 2),
-                combo_box.y + (combo_box.height / 2.0f),
-            };
-            Vector2 arrow_points[3] = {
-                {arrow_center.x - arrow_size, arrow_center.y - (arrow_size / 2.0f)},
-                {arrow_center.x + arrow_size, arrow_center.y - (arrow_size / 2.0f)},
-                {arrow_center.x, arrow_center.y + (arrow_size / 2.0f)},
-            };
-
-            DrawTriangle(arrow_points[0], arrow_points[1], arrow_points[2], color_text);
-
-            if (node->combobox.state->open) {
-                open_combobox_idx = i;
-            }
-
             break;
-        }
         }
 
         if (show_ui_debug) {
@@ -1030,12 +1001,19 @@ Rectangle ui_EndPanel() {
         }
     }
 
-    if (open_combobox_idx != -1) {
-        UINode *combo_node = &panel.nodes[open_combobox_idx];
+    if (open_combo_idx != -1) {
+        UINode *combo_node = &panel.nodes[open_combo_idx];
         Rectangle dropdown = combo_node->combobox.dropdown_bounds;
 
-        DrawRectangleRec(dropdown, color_panel_bg);
-        DrawRectangleLinesEx(dropdown, 2, color_button_border);
+        const int dropdown_padding = 2;
+        Rectangle dropdown_wrapper = {
+            dropdown.x - dropdown_padding,
+            dropdown.y - dropdown_padding,
+            dropdown.width + dropdown_padding * 2,
+            dropdown.height + dropdown_padding * 2,
+        };
+
+        DrawRectangleRec(dropdown_wrapper, color_input_border);
 
         Vector2 mouse_position = GetMousePosition();
         const int selected_index
@@ -1075,7 +1053,7 @@ Rectangle ui_EndPanel() {
 
     is_started = false;
 
-    return panel_rec;
+    return panel.bounds;
 }
 
 void ui_MasterDetailBegin(UIMasterDetailPanel *panel_state, Vector2 origin, float gap) {
