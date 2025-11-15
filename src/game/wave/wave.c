@@ -149,6 +149,8 @@ static float applyEffectsToValue(int mobIndex, float value, StatusEffectType eff
         case MOD_VALUE_TYPE_MULTIPLIER:
             newValue *= effect->value;
             break;
+        case MOD_VALUE_TYPE_COUNT:
+            assert(false && "Invalid mod value type");
         }
     }
 

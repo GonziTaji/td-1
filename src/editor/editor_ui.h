@@ -19,6 +19,8 @@ typedef enum {
     INPUT_TYPE_TEXT,
     INPUT_TYPE_INT,
     INPUT_TYPE_FLOAT,
+    INPUT_TYPE_OPTIONS_BUTTON,
+    INPUT_TYPE_SELECT
 } InputType;
 
 typedef bool IsActive;
@@ -41,18 +43,25 @@ Rectangle ui_EndPanel();
 
 void ui_AddTextNode(char *text, int font_size);
 void ui_AddSeparator(int thickness);
-void ui_AddOptionsButton(const char *label, int *value, char **options, int option_count, int font_size);
+IsActive ui_AddOptionsButton(const char *label, int *value, char **options, int option_count, int font_size);
 IsActive ui_AddButton(char *text, int font_size);
 void ui_AddSwitchButtons(int button_count, int *active_button_idx, char **labels, int font_size);
 int ui_AddToolbar(int button_count, char **labels, int font_size);
 IsActive ui_AddIntInput(char *label, int *value, int font_size, bool is_edit_mode);
-IsActive ui_AddTextInput(char *label, char *text_value, int font_size, bool is_edit_mode);
 IsActive ui_AddFloatInput(char *label, float *value, int font_size, bool is_edit_mode);
+IsActive ui_AddTextInput(char *label, char *text_value, int font_size, bool is_edit_mode);
 IsActive ui_AddComboBox(const char *label, int *value, char **options, int option_count, int font_size);
+IsActive ui_AddInputByType(InputType type,
+    char *label,
+    void *value,
+    int font_size,
+    bool is_edit_mode,
+    char **option_labels,
+    int options_count);
 
-void ui_MasterDetailBegin(UIMasterDetailPanel *panel, Vector2 origin, float gap);
-void ui_MasterDetailBeginMaster(UIMasterDetailPanel *panel, UILayout layout);
-Rectangle ui_MasterDetailEndMaster(UIMasterDetailPanel *panel);
-void ui_MasterDetailBeginDetail(UIMasterDetailPanel *panel, UILayout layout);
-Rectangle ui_MasterDetailEndDetail(UIMasterDetailPanel *panel);
-Rectangle ui_MasterDetailGetBounds(const UIMasterDetailPanel *panel);
+void ui_MasterDetailBegin(Vector2 origin, float gap);
+void ui_MasterDetailBeginMaster(UILayout layout);
+Rectangle ui_MasterDetailEndMaster();
+void ui_MasterDetailBeginDetail(UILayout layout);
+Rectangle ui_MasterDetailEndDetail();
+Rectangle ui_MasterDetailGetBounds();

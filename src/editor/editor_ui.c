@@ -121,6 +121,7 @@ typedef struct {
 } UIPanel;
 
 static UIPanel panel = {0};
+static UIMasterDetailPanel master_detail_panel = {0};
 
 static Vector2 cursor_initial_pos = {0};
 static Vector2 cursor_current_pos = {0};
@@ -307,7 +308,7 @@ static bool ShouldCommitFloatValue(const char *text_value) {
     const size_t len = strlen(text_value);
 
     if (len == 0) {
-        return false;
+        return true;
     }
 
     char *end_ptr = NULL;
@@ -409,7 +410,8 @@ static void CommitNewNode() {
     }
 }
 
-static IsActive AddInput(InputType type, char *label, char *text_value, void *value, int font_size, bool is_edit_mode) {
+static IsActive
+AddBaseInput(InputType type, char *label, char *text_value, void *value, int font_size, bool is_edit_mode) {
     AssertNodeCanBeAdded();
     AddGapIfNeeded();
 
@@ -430,6 +432,9 @@ static IsActive AddInput(InputType type, char *label, char *text_value, void *va
     case INPUT_TYPE_FLOAT:
         node->aabb.width = input_int_width;
         break;
+
+    default:
+        assert(false && "Invalid input type in function \"AddBaseInput\". Use only TEXT, INT or FLOAT types");
     }
 
     node->aabb.height = font_size;
@@ -472,7 +477,7 @@ static IsActive AddInput(InputType type, char *label, char *text_value, void *va
                         key_accepted = true;
                     }
                     break;
-                case INPUT_TYPE_FLOAT: {
+                case INPUT_TYPE_FLOAT:
                     if ((key >= 48) && (key <= 57)) {
                         key_accepted = true;
                     } else if (key == '.' && strchr(text_value, '.') == NULL) {
@@ -481,7 +486,9 @@ static IsActive AddInput(InputType type, char *label, char *text_value, void *va
                         key_accepted = true;
                     }
                     break;
-                }
+
+                default:
+                    return false;
                 }
 
                 if (key_accepted) {
@@ -514,6 +521,9 @@ static IsActive AddInput(InputType type, char *label, char *text_value, void *va
                     *(float *)value = strtof(text_value, NULL);
                 }
                 break;
+
+            default:
+                return false;
             }
         }
     }
@@ -533,7 +543,7 @@ IsActive ui_AddIntInput(char *label, int *value, int font_size, bool is_edit_mod
     char text_value[EDITOR_UI_MAX_CHARS_INPUT_NODE];
     snprintf(text_value, sizeof(text_value), "%d", *value);
 
-    return AddInput(INPUT_TYPE_INT, label, text_value, value, font_size, is_edit_mode);
+    return AddBaseInput(INPUT_TYPE_INT, label, text_value, value, font_size, is_edit_mode);
 }
 
 IsActive ui_AddFloatInput(char *label, float *value, int font_size, bool is_edit_mode) {
@@ -547,7 +557,7 @@ IsActive ui_AddFloatInput(char *label, float *value, int font_size, bool is_edit
         snprintf(state->buffer, sizeof(state->buffer), "%g", *value);
     }
 
-    IsActive result = AddInput(INPUT_TYPE_FLOAT, label, state->buffer, value, font_size, is_edit_mode);
+    IsActive result = AddBaseInput(INPUT_TYPE_FLOAT, label, state->buffer, value, font_size, is_edit_mode);
 
     if (!is_edit_mode) {
         snprintf(state->buffer, sizeof(state->buffer), "%g", *value);
@@ -716,7 +726,34 @@ IsActive ui_AddTextInput(char *label, char *text_value, int font_size, bool is_e
         }
     }
 
-    return AddInput(INPUT_TYPE_TEXT, label, text_value, text_value, font_size, is_edit_mode);
+    return AddBaseInput(INPUT_TYPE_TEXT, label, text_value, text_value, font_size, is_edit_mode);
+}
+
+IsActive ui_AddInputByType(InputType type,
+    char *label,
+    void *value,
+    int font_size,
+    bool is_edit_mode,
+    char **option_labels,
+    int options_count) {
+    switch (type) {
+    case INPUT_TYPE_INT:
+        return ui_AddIntInput(label, value, font_size, is_edit_mode);
+
+    case INPUT_TYPE_FLOAT:
+        return ui_AddFloatInput(label, value, font_size, is_edit_mode);
+
+    case INPUT_TYPE_TEXT:
+        return ui_AddTextInput(label, value, font_size, is_edit_mode);
+
+    case INPUT_TYPE_OPTIONS_BUTTON:
+        return ui_AddOptionsButton(label, value, option_labels, options_count, font_size);
+
+    case INPUT_TYPE_SELECT:
+        return ui_AddComboBox(label, value, option_labels, options_count, font_size);
+    }
+
+    return false;
 }
 
 IsActive ui_isCurrentNodeActive() {
@@ -792,7 +829,7 @@ int ui_AddToolbar(int button_count, char **labels, int font_size) {
     return active_button_idx;
 }
 
-void ui_AddOptionsButton(const char *label, int *value, char **options, int options_count, int font_size) {
+IsActive ui_AddOptionsButton(const char *label, int *value, char **options, int options_count, int font_size) {
     const Vector2 text_dimensions = MeasureTextEx(uiFont, label, font_size, 0);
 
     float label_width = input_label_padding + text_dimensions.x;
@@ -833,6 +870,8 @@ void ui_AddOptionsButton(const char *label, int *value, char **options, int opti
     }
 
     CommitNewNode();
+
+    return isActive;
 }
 
 IsActive ui_AddButton(char *text, int font_size) {
@@ -884,7 +923,7 @@ void ui_AddSeparator(int thickness) {
     node->aabb.x = cursor_current_pos.x;
     node->aabb.y = cursor_current_pos.y;
     node->aabb.width = 0;
-    node->aabb.height = 0;
+    node->aabb.height = thickness;
 
     CommitNewNode();
 }
@@ -1056,10 +1095,8 @@ Rectangle ui_EndPanel() {
     return panel.bounds;
 }
 
-void ui_MasterDetailBegin(UIMasterDetailPanel *panel_state, Vector2 origin, float gap) {
-    assert(panel_state != NULL);
-
-    *panel_state = (UIMasterDetailPanel){
+void ui_MasterDetailBegin(Vector2 origin, float gap) {
+    master_detail_panel = (UIMasterDetailPanel){
         .origin = origin,
         .master_origin = origin,
         .detail_origin = origin,
@@ -1071,61 +1108,55 @@ void ui_MasterDetailBegin(UIMasterDetailPanel *panel_state, Vector2 origin, floa
     };
 }
 
-void ui_MasterDetailBeginMaster(UIMasterDetailPanel *panel_state, UILayout layout) {
-    assert(panel_state != NULL);
-    assert(!panel_state->master_started && "Master panel already started");
+void ui_MasterDetailBeginMaster(UILayout layout) {
+    assert(!master_detail_panel.master_started && "Master panel already started");
 
-    panel_state->master_layout = layout;
-    panel_state->master_started = true;
+    master_detail_panel.master_layout = layout;
+    master_detail_panel.master_started = true;
 
-    ui_StartPanel(panel_state->master_origin, layout);
+    ui_StartPanel(master_detail_panel.master_origin, layout);
 }
 
-Rectangle ui_MasterDetailEndMaster(UIMasterDetailPanel *panel_state) {
-    assert(panel_state != NULL);
-    assert(panel_state->master_started && "Master panel not started");
+Rectangle ui_MasterDetailEndMaster() {
+    assert(master_detail_panel.master_started && "Master panel not started");
 
-    panel_state->master_bounds = ui_EndPanel();
-    panel_state->master_started = false;
+    master_detail_panel.master_bounds = ui_EndPanel();
+    master_detail_panel.master_started = false;
 
-    panel_state->detail_origin = (Vector2){
-        panel_state->master_bounds.x + panel_state->master_bounds.width + panel_state->gap,
-        panel_state->master_bounds.y,
+    master_detail_panel.detail_origin = (Vector2){
+        master_detail_panel.master_bounds.x + master_detail_panel.master_bounds.width + master_detail_panel.gap,
+        master_detail_panel.master_bounds.y,
     };
 
-    return panel_state->master_bounds;
+    return master_detail_panel.master_bounds;
 }
 
-void ui_MasterDetailBeginDetail(UIMasterDetailPanel *panel_state, UILayout layout) {
-    assert(panel_state != NULL);
-    assert(!panel_state->detail_started && "Detail panel already started");
+void ui_MasterDetailBeginDetail(UILayout layout) {
+    assert(!master_detail_panel.detail_started && "Detail panel already started");
 
-    panel_state->detail_layout = layout;
-    panel_state->detail_started = true;
+    master_detail_panel.detail_layout = layout;
+    master_detail_panel.detail_started = true;
 
-    ui_StartPanel(panel_state->detail_origin, layout);
+    ui_StartPanel(master_detail_panel.detail_origin, layout);
 }
 
-Rectangle ui_MasterDetailEndDetail(UIMasterDetailPanel *panel_state) {
-    assert(panel_state != NULL);
-    assert(panel_state->detail_started && "Detail panel not started");
+Rectangle ui_MasterDetailEndDetail() {
+    assert(master_detail_panel.detail_started && "Detail panel not started");
 
-    panel_state->detail_bounds = ui_EndPanel();
-    panel_state->detail_started = false;
+    master_detail_panel.detail_bounds = ui_EndPanel();
+    master_detail_panel.detail_started = false;
 
-    return panel_state->detail_bounds;
+    return master_detail_panel.detail_bounds;
 }
 
-Rectangle ui_MasterDetailGetBounds(const UIMasterDetailPanel *panel_state) {
-    assert(panel_state != NULL);
+Rectangle ui_MasterDetailGetBounds() {
+    const float left = MIN(master_detail_panel.master_bounds.x, master_detail_panel.detail_bounds.x);
+    const float top = MIN(master_detail_panel.master_bounds.y, master_detail_panel.detail_bounds.y);
 
-    const float left = MIN(panel_state->master_bounds.x, panel_state->detail_bounds.x);
-    const float top = MIN(panel_state->master_bounds.y, panel_state->detail_bounds.y);
-
-    const float right = MAX(panel_state->master_bounds.x + panel_state->master_bounds.width,
-        panel_state->detail_bounds.x + panel_state->detail_bounds.width);
-    const float bottom = MAX(panel_state->master_bounds.y + panel_state->master_bounds.height,
-        panel_state->detail_bounds.y + panel_state->detail_bounds.height);
+    const float right = MAX(master_detail_panel.master_bounds.x + master_detail_panel.master_bounds.width,
+        master_detail_panel.detail_bounds.x + master_detail_panel.detail_bounds.width);
+    const float bottom = MAX(master_detail_panel.master_bounds.y + master_detail_panel.master_bounds.height,
+        master_detail_panel.detail_bounds.y + master_detail_panel.detail_bounds.height);
 
     return (Rectangle){
         left,

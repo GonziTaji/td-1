@@ -10,6 +10,7 @@
 typedef struct {
     BulletModifier *data;
     int count;
+    int capacity;
 } BulletModifierRegistry;
 
 static BulletModifierRegistry bullet_modifiers = {0};
@@ -62,6 +63,7 @@ bool bullet_mod_data_load() {
 
     int count = cJSON_GetArraySize(data);
     bullet_modifiers.count = count;
+    bullet_modifiers.capacity = count;
     bullet_modifiers.data = calloc(count, sizeof(BulletModifier));
 
     for (int i = 0; i < count; i++) {
@@ -110,6 +112,19 @@ int bullet_mod_data_GetModCount() {
 
 BulletModifier *bullet_mod_data_GetMutableModData(int mod_id) {
     return &bullet_modifiers.data[mod_id];
+}
+
+int bullet_mod_data_CreateNewMod() {
+    if (bullet_modifiers.count >= bullet_modifiers.capacity) {
+        bullet_modifiers.capacity *= 2;
+        bullet_modifiers.data = realloc(bullet_modifiers.data, bullet_modifiers.capacity * sizeof(BulletModifier));
+    }
+
+    bullet_modifiers.data[bullet_modifiers.count] = (BulletModifier){.name = "Unnamed"};
+
+    bullet_modifiers.count++;
+
+    return bullet_modifiers.count - 1;
 }
 
 #endif
