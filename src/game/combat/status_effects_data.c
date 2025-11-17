@@ -10,6 +10,7 @@
 typedef struct {
     StatusEffect *data;
     int count;
+    int capacity;
 } StatusEffectRegistry;
 
 static StatusEffectRegistry status_effects = {0};
@@ -95,6 +96,7 @@ bool status_effect_data_load() {
 
     int count = cJSON_GetArraySize(data);
     status_effects.count = count;
+    status_effects.capacity = count;
     status_effects.data = calloc(count, sizeof(StatusEffect));
 
     for (int i = 0; i < count; i++) {
@@ -142,6 +144,29 @@ int status_effect_data_GetEffectsCount() {
 
 StatusEffect *status_effect_data_GetMutableStatusData(int effect_id) {
     return &status_effects.data[effect_id];
+}
+
+int status_effect_data_RemoveStatusData(int mod_id) {
+    for (int i = mod_id; i < status_effects.count; i++) {
+        status_effects.data[i] = status_effects.data[i + 1];
+    }
+
+    status_effects.count--;
+
+    return status_effects.count;
+}
+
+int status_effect_data_CreateNewStatus() {
+    if (status_effects.count >= status_effects.capacity) {
+        status_effects.capacity *= 2;
+        status_effects.data = realloc(status_effects.data, status_effects.capacity * sizeof(StatusEffect));
+    }
+
+    status_effects.data[status_effects.count] = (StatusEffect){.name = "Unnamed"};
+
+    status_effects.count++;
+
+    return status_effects.count - 1;
 }
 
 char **status_effect_data_GetEffectTypeLabels() {

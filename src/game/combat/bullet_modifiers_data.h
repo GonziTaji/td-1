@@ -34,6 +34,7 @@ bool bullet_mod_data_load();
 
 int bullet_mod_data_GetModCount();
 BulletModifier *bullet_mod_data_GetMutableModData(int mod_id);
+int bullet_mod_data_RemoveModData(int mod_id);
 int bullet_mod_data_CreateNewMod();
 
 #endif

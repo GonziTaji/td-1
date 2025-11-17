@@ -114,6 +114,16 @@ BulletModifier *bullet_mod_data_GetMutableModData(int mod_id) {
     return &bullet_modifiers.data[mod_id];
 }
 
+int bullet_mod_data_RemoveModData(int mod_id) {
+    for (int i = mod_id; i < bullet_modifiers.count; i++) {
+        bullet_modifiers.data[i] = bullet_modifiers.data[i + 1];
+    }
+
+    bullet_modifiers.count--;
+
+    return bullet_modifiers.count;
+}
+
 int bullet_mod_data_CreateNewMod() {
     if (bullet_modifiers.count >= bullet_modifiers.capacity) {
         bullet_modifiers.capacity *= 2;

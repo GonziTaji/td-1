@@ -15,45 +15,46 @@
                     "name": {
                         "type": "string"
                     },
-                    "value_type": {
-                        "type": "string",
-                        "enum": [
-                            "FLAT",
-                            "MULTIPLIER"
-                        ]
-                    },
-                    "damage": {
-                        "type": "number",
-                        "minimum": 0
-                    },
-                    "range": {
-                        "type": "number",
-                        "minimum": 0
-                    },
-                    "rate_of_fire": {
-                        "type": "number",
-                        "minimum": 0
-                    },
-                    "bullet_speed": {
-                        "type": "number",
-                        "minimum": 0
-                    },
-                    "multishot": {
-                        "type": "number",
-                        "minimum": 0
-                    },
-                    "crit_chance_percent": {
-                        "type": "number",
-                        "minimum": 0
+                    "attributes": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "attribute": {
+                                    "type": "string",
+                                    "enum": [
+                                        "DAMAGE",
+                                        "RANGE",
+                                        "RATE_OF_FIRE",
+                                        "BULLET_SPEED",
+                                        "MULTISHOT",
+                                        "CRIT_CHANCE_PERCENT"
+                                    ]
+                                },
+                                "value_type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "FLAT",
+                                        "MULTIPLIER"
+                                    ]
+                                },
+                                "value": "number"
+                            },
+                            "required": [
+                                "attribute",
+                                "value_type",
+                                "value"
+                            ]
+                        }
                     }
-                },
-                "required": [
-                    "name",
-                    "value_type"
-                ],
-                "additionalProperties": false
+                }
             }
-        }
+        },
+        "required": [
+            "name",
+            "attributes"
+        ],
+        "additionalProperties": false
     },
     "required": [
         "data"

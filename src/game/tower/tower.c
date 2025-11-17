@@ -127,9 +127,11 @@ static void calculateTowerAttributes(Tower *tower) {
     for (int i = 0; i < tower->tower_modifier_count; i++) {
         TowerModifier *mod = &tower->tower_modifiers[i];
 
-        if (mod->value_type == MOD_VALUE_TYPE_FLAT) {
-            for (int j = 0; j < TOWER_ATTR_COUNT; j++) {
-                tower->attributes.values[j] += mod->attributes.values[j];
+        for (int entry_idx = 0; entry_idx < mod->entries_count; entry_idx++) {
+            TowerModifierEntry *entry = &mod->entries[entry_idx];
+
+            if (entry->value_type == MOD_VALUE_TYPE_FLAT) {
+                tower->attributes.values[entry->target] += entry->value;
             }
         }
     }
@@ -138,9 +140,11 @@ static void calculateTowerAttributes(Tower *tower) {
     for (int i = 0; i < tower->tower_modifier_count; i++) {
         TowerModifier *mod = &tower->tower_modifiers[i];
 
-        if (mod->value_type == MOD_VALUE_TYPE_MULTIPLIER) {
-            for (int j = 0; j < TOWER_ATTR_COUNT; j++) {
-                tower->attributes.values[j] *= mod->attributes.values[j];
+        for (int entry_idx = 0; entry_idx < mod->entries_count; entry_idx++) {
+            TowerModifierEntry *entry = &mod->entries[entry_idx];
+
+            if (entry->value_type == MOD_VALUE_TYPE_FLAT) {
+                tower->attributes.values[entry->target] *= 1.0f + entry->value;
             }
         }
     }
@@ -351,7 +355,13 @@ static void updateTowers(float deltaTime) {
 
             spawnBullet(&towersPool[i], towersPool[i].current_target_idx);
 
-            // TODO: multishot - try to target mobs near the current target (same wave/+-index)
+            // TODO: multishot
+
+            if (towersPool[i].attributes.multishot > 0) {
+                for (int j = 0; j < towersPool[i].attributes.multishot; j++) {
+                    getTowerTarget(towerPos, attr->range);
+                }
+            }
         }
     }
 }

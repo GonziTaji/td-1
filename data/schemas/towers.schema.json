@@ -63,7 +63,7 @@
                         },
                         "minItems": 4,
                         "maxItems": 4,
-                        "description": "Color RGBA de la torre."
+                        "description": "Tower RGBA Color"
                     },
                     "bullet_color": {
                         "type": "array",
@@ -74,7 +74,7 @@
                         },
                         "minItems": 4,
                         "maxItems": 4,
-                        "description": "Color RGBA de las balas."
+                        "description": "Bullet RGBA Color"
                     },
                     "bullet_width": {
                         "type": "integer",

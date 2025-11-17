@@ -56,6 +56,7 @@ typedef struct {
     int wave_selected_idx;
     int status_effect_selected_idx;
     int bullet_mod_selected_idx;
+    int tower_mod_selected_idx;
 
 } EditorState;
 
@@ -75,7 +76,7 @@ static const EditorState editor_initial_state = {
     .path_editor_status = EDITOR_STATUS_NORMAL,
     .wave_selected_idx = 0,
     .status_effect_selected_idx = 0,
-    .bullet_mod_selected_idx = 0,
+    .tower_mod_selected_idx = 0,
 };
 
 static EditorState editor_state = editor_initial_state;
@@ -148,8 +149,132 @@ static Rectangle DrawTabsHeader(Vector2 position) {
 }
 
 static Rectangle DrawTowerModsPanel(Vector2 position) {
-    ui_StartPanel(position, base_layout);
-    return ui_EndPanel();
+    ui_MasterDetailBegin(position, base_layout.gap);
+
+    ui_MasterDetailBeginMaster(base_layout);
+
+    ui_AddTextNode("Tower Modifiers", font_sizes.title);
+
+    if (ui_AddButton("Restore saved data", font_sizes.button)) {
+        tower_mod_data_load();
+        editor_state.tower_mod_selected_idx = 0;
+    }
+
+    if (ui_AddButton("Add new mod", font_sizes.button)) {
+        editor_state.tower_mod_selected_idx = tower_mod_data_CreateNewMod();
+    }
+
+    ui_AddSeparator(1);
+
+    const int mod_count = tower_mod_data_GetModCount();
+
+    if (mod_count == 0) {
+        ui_AddTextNode("No mods available", font_sizes.title);
+
+        return ui_MasterDetailEndMaster();
+    }
+
+    char *mods_labels[EDITOR_UI_COMBOBOX_MAX_OPTIONS];
+    const int capped_count = MIN(mod_count, EDITOR_UI_COMBOBOX_MAX_OPTIONS);
+
+    for (int idx = 0; idx < capped_count; idx++) {
+        mods_labels[idx] = tower_mod_data_GetMutableModData(idx)->name;
+    }
+
+    if (editor_state.tower_mod_selected_idx >= capped_count) {
+        editor_state.tower_mod_selected_idx = capped_count - 1;
+    }
+
+    const int combobox_id = getId();
+
+    if (ui_AddComboBox("Modifier:",
+            &editor_state.tower_mod_selected_idx,
+            mods_labels,
+            capped_count,
+            font_sizes.subtitle)) {
+
+        editor_state.active_input_id = combobox_id;
+    }
+
+    ui_AddSeparator(10);
+
+    if (ui_AddButton("REMOVE MOD", font_sizes.button)) {
+        int new_count = tower_mod_data_RemoveModData(editor_state.tower_mod_selected_idx);
+
+        editor_state.tower_mod_selected_idx = new_count - 1;
+    }
+
+    ui_MasterDetailEndMaster();
+
+    ui_MasterDetailBeginDetail(base_layout);
+
+    TowerModifier *mod = tower_mod_data_GetMutableModData(editor_state.tower_mod_selected_idx);
+    int element_id = getId();
+    bool is_edit_mode = editor_state.active_input_id == element_id;
+
+    if (ui_AddTextInput("Name:", mod->name, font_sizes.input, is_edit_mode)) {
+        editor_state.active_input_id = element_id;
+    }
+
+    char *tower_attr_labels[EDITOR_UI_COMBOBOX_MAX_OPTIONS];
+
+    for (TowerAttributeType attr = 0; attr < TOWER_ATTR_COUNT; attr++) {
+        tower_attr_labels[attr] = tower_mod_data_GetAttrLabel(attr);
+    }
+
+    char **value_type_values = utils_GetModValueTypeLabels();
+
+    for (int i = 0; i < mod->entries_count; i++) {
+        TowerModifierEntry *mod_entry = &mod->entries[i];
+
+        element_id = getId();
+
+        ui_AddSeparator(1);
+
+        if (ui_AddComboBox("Attribute:",
+                (int *)&mod_entry->target,
+                tower_attr_labels,
+                TOWER_ATTR_COUNT,
+                font_sizes.input)) {
+
+            editor_state.active_input_id = element_id;
+        }
+
+        element_id = getId();
+        is_edit_mode = editor_state.active_input_id == element_id;
+
+        if (ui_AddFloatInput("Value:", &mod_entry->value, font_sizes.input, is_edit_mode)) {
+            editor_state.active_input_id = element_id;
+        }
+
+        element_id = getId();
+
+        if (ui_AddComboBox("Value type",
+                (int *)&mod_entry->value_type,
+                value_type_values,
+                DURATION_TYPE_COUNT,
+                font_sizes.input)) {
+
+            editor_state.active_input_id = element_id;
+        }
+
+        if (mod->entries_count > 1 && ui_AddButton("Remove bonus", font_sizes.button)) {
+            for (int current = i; current < mod->entries_count; current++) {
+                mod->entries[current] = mod->entries[current + 1];
+            }
+
+            mod->entries_count -= 1;
+            break;
+        }
+    }
+
+    ui_AddSeparator(1);
+
+    if (ui_AddButton("Add bonus", font_sizes.button)) {
+        mod->entries_count += 1;
+    }
+
+    return ui_MasterDetailEndDetail();
 }
 
 static Rectangle DrawBulletModsPanel(Vector2 position) {
@@ -157,7 +282,26 @@ static Rectangle DrawBulletModsPanel(Vector2 position) {
 
     ui_MasterDetailBeginMaster(base_layout);
 
+    ui_AddTextNode("Bullet Modifiers", font_sizes.title);
+
+    if (ui_AddButton("Restore saved data", font_sizes.button)) {
+        bullet_mod_data_load();
+        editor_state.bullet_mod_selected_idx = 0;
+    }
+
+    if (ui_AddButton("Add new mod", font_sizes.button)) {
+        editor_state.bullet_mod_selected_idx = bullet_mod_data_CreateNewMod();
+    }
+
+    ui_AddSeparator(1);
+
     const int mod_count = bullet_mod_data_GetModCount();
+
+    if (mod_count == 0) {
+        ui_AddTextNode("No mods available", font_sizes.title);
+
+        return ui_MasterDetailEndMaster();
+    }
 
     char *mods_labels[EDITOR_UI_COMBOBOX_MAX_OPTIONS];
     const int capped_count = MIN(mod_count, EDITOR_UI_COMBOBOX_MAX_OPTIONS);
@@ -172,7 +316,7 @@ static Rectangle DrawBulletModsPanel(Vector2 position) {
 
     const int combobox_id = getId();
 
-    if (ui_AddComboBox("Effect:",
+    if (ui_AddComboBox("Modifier:",
             &editor_state.bullet_mod_selected_idx,
             mods_labels,
             capped_count,
@@ -181,8 +325,12 @@ static Rectangle DrawBulletModsPanel(Vector2 position) {
         editor_state.active_input_id = combobox_id;
     }
 
-    if (ui_AddButton("Add new mod", font_sizes.button)) {
-        editor_state.bullet_mod_selected_idx = bullet_mod_data_CreateNewMod();
+    ui_AddSeparator(10);
+
+    if (ui_AddButton("REMOVE MOD", font_sizes.button)) {
+        int new_count = bullet_mod_data_RemoveModData(editor_state.bullet_mod_selected_idx);
+
+        editor_state.tower_mod_selected_idx = new_count - 1;
     }
 
     ui_MasterDetailEndMaster();
@@ -272,38 +420,56 @@ static Rectangle DrawStatusEffectsPanel(Vector2 position) {
 
     ui_AddTextNode("Status effects", font_sizes.title);
 
-    int status_count = status_effect_data_GetEffectsCount();
+    if (ui_AddButton("Restore saved data", font_sizes.button)) {
+        status_effect_data_load();
+        editor_state.status_effect_selected_idx = 0;
+    }
+
+    if (ui_AddButton("Add new effect", font_sizes.button)) {
+        editor_state.status_effect_selected_idx = status_effect_data_CreateNewStatus();
+    }
+
+    ui_AddSeparator(1);
+
+    const int status_count = status_effect_data_GetEffectsCount();
 
     if (status_count == 0) {
-        editor_state.status_effect_selected_idx = 0;
-        ui_AddTextNode("No status effects available", font_sizes.subtitle);
-    } else {
-        char *effect_labels[EDITOR_UI_COMBOBOX_MAX_OPTIONS];
-        const int capped_count = MIN(status_count, EDITOR_UI_COMBOBOX_MAX_OPTIONS);
+        ui_AddTextNode("No status effects available", font_sizes.title);
 
-        for (int idx = 0; idx < capped_count; idx++) {
-            effect_labels[idx] = status_effect_data_GetMutableStatusData(idx)->name;
-        }
+        return ui_MasterDetailEndMaster();
+    }
 
-        if (editor_state.status_effect_selected_idx >= capped_count) {
-            editor_state.status_effect_selected_idx = capped_count - 1;
-        }
+    char *effect_labels[EDITOR_UI_COMBOBOX_MAX_OPTIONS];
+    const int capped_count = MIN(status_count, EDITOR_UI_COMBOBOX_MAX_OPTIONS);
 
-        const int combobox_id = getId();
+    for (int idx = 0; idx < capped_count; idx++) {
+        effect_labels[idx] = status_effect_data_GetMutableStatusData(idx)->name;
+    }
 
-        if (ui_AddComboBox("Effect:",
-                &editor_state.status_effect_selected_idx,
-                effect_labels,
-                capped_count,
-                font_sizes.subtitle)) {
+    if (editor_state.status_effect_selected_idx >= capped_count) {
+        editor_state.status_effect_selected_idx = capped_count - 1;
+    }
 
-            editor_state.active_input_id = combobox_id;
-        }
+    const int combobox_id = getId();
+
+    if (ui_AddComboBox("Effect:",
+            &editor_state.status_effect_selected_idx,
+            effect_labels,
+            capped_count,
+            font_sizes.subtitle)) {
+
+        editor_state.active_input_id = combobox_id;
+    }
+
+    ui_AddSeparator(10);
+
+    if (ui_AddButton("REMOVE EFFECT", font_sizes.button)) {
+        int new_count = status_effect_data_RemoveStatusData(editor_state.status_effect_selected_idx);
+
+        editor_state.tower_mod_selected_idx = new_count - 1;
     }
 
     ui_MasterDetailEndMaster();
-
-    status_count = status_effect_data_GetEffectsCount();
 
     ui_MasterDetailBeginDetail(base_layout);
 
@@ -375,17 +541,11 @@ static Rectangle DrawStatusEffectsPanel(Vector2 position) {
     return ui_MasterDetailGetBounds();
 }
 
-/// returns the final panel aabb
 static Rectangle DrawScenePanel(Vector2 panel_origin) {
     ui_StartPanel(panel_origin, base_layout);
 
-    //
-    // SCENE SECTION
-    //
-    snprintf(buffer, sizeof(buffer), "SCENE %d:", SCENE_DATA->id);
+    snprintf(buffer, sizeof(buffer), "SCENE %d: %s", SCENE_DATA->id, SCENE_DATA->name);
     ui_AddTextNode(buffer, font_sizes.title);
-    snprintf(buffer, sizeof(buffer), "%s", SCENE_DATA->name);
-    ui_AddTextNode(buffer, font_sizes.subtitle);
 
     if (ui_AddButton("Restore saved data", font_sizes.button)) {
         scene_data_ReloadCurrentScene();
@@ -561,50 +721,52 @@ Rectangle DrawTowersPanel(Vector2 panel_position) {
 
     ui_AddTextNode("Towers", font_sizes.title);
 
-    if (ui_AddButton("Restore saved tower data", font_sizes.button)) {
+    if (ui_AddButton("Restore saved data", font_sizes.button)) {
         tower_data_load();
-    }
-
-    ui_AddSeparator(1);
-
-    int tower_types_count = tower_data_getTowerTypeCount();
-
-    if (tower_types_count == 0) {
         editor_state.tower_selected_id = 0;
-        ui_AddTextNode("No towers defined", font_sizes.subtitle);
-    } else {
-        char *tower_labels[EDITOR_UI_COMBOBOX_MAX_OPTIONS];
-        const int capped_count = MIN(tower_types_count, EDITOR_UI_COMBOBOX_MAX_OPTIONS);
-
-        for (int type_id = 0; type_id < capped_count; type_id++) {
-            tower_labels[type_id] = tower_data_GetMutableTowerData(type_id)->name;
-        }
-
-        if (editor_state.tower_selected_id >= capped_count) {
-            editor_state.tower_selected_id = capped_count - 1;
-        }
-
-        const int combobox_id = getId();
-
-        if (ui_AddComboBox("Tower:",
-                &editor_state.tower_selected_id,
-                tower_labels,
-                capped_count,
-                font_sizes.subtitle)) {
-
-            editor_state.active_input_id = combobox_id;
-        }
     }
-
-    ui_AddSeparator(1);
 
     if (ui_AddButton("Add new tower", font_sizes.button)) {
         editor_state.tower_selected_id = tower_data_CreateNewTowerType();
     }
 
-    ui_MasterDetailEndMaster();
+    ui_AddSeparator(1);
 
-    tower_types_count = tower_data_getTowerTypeCount();
+    const int tower_types_count = tower_data_getTowerTypeCount();
+
+    if (tower_types_count == 0) {
+        ui_AddTextNode("No towers available", font_sizes.title);
+
+        return ui_MasterDetailEndMaster();
+    }
+
+    char *tower_labels[EDITOR_UI_COMBOBOX_MAX_OPTIONS];
+    const int capped_count = MIN(tower_types_count, EDITOR_UI_COMBOBOX_MAX_OPTIONS);
+
+    for (int type_id = 0; type_id < capped_count; type_id++) {
+        tower_labels[type_id] = tower_data_GetMutableTowerData(type_id)->name;
+    }
+
+    if (editor_state.tower_selected_id >= capped_count) {
+        editor_state.tower_selected_id = capped_count - 1;
+    }
+
+    const int combobox_id = getId();
+
+    if (ui_AddComboBox("Tower:", &editor_state.tower_selected_id, tower_labels, capped_count, font_sizes.subtitle)) {
+
+        editor_state.active_input_id = combobox_id;
+    }
+
+    ui_AddSeparator(10);
+
+    // TODO: confirmation mechanism
+    if (tower_types_count > 1 && ui_AddButton("REMOVE TOWER", font_sizes.button)) {
+        towers_clear();
+        tower_data_RemoveTowerData(editor_state.tower_selected_id);
+    }
+
+    ui_MasterDetailEndMaster();
 
     ui_MasterDetailBeginDetail(base_layout);
 
@@ -620,6 +782,7 @@ Rectangle DrawTowersPanel(Vector2 panel_position) {
     if (editor_state.tower_selected_id >= tower_types_count) {
         editor_state.tower_selected_id = tower_types_count - 1;
     }
+
     TowerBaseData *tower_data = tower_data_GetMutableTowerData(editor_state.tower_selected_id);
     TowerAttributes *tower_attrs = &tower_data->attributes;
 
@@ -667,12 +830,6 @@ Rectangle DrawTowersPanel(Vector2 panel_position) {
             assert(false && "Invalid tower attribute type");
             break;
         }
-    }
-
-    // TODO: confirmation mechanism
-    if (tower_types_count > 1 && ui_AddButton("Delete tower", font_sizes.button)) {
-        towers_clear();
-        tower_data_RemoveTowerData(editor_state.tower_selected_id);
     }
 
     ui_MasterDetailEndDetail();

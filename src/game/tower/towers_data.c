@@ -35,7 +35,8 @@ int tower_data_getTowerTypeCount() {
 }
 
 const TowerBaseData *const tower_data_getDataByIndex(int index) {
-    if (index < tower_registry.count && index >= 0 && "Invalid index") {
+    // assert?
+    if (index >= tower_registry.count || index < 0) {
         return NULL;
     }
 

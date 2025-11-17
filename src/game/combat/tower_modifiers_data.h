@@ -12,15 +12,6 @@ typedef enum {
     TOWER_ATTR_COUNT
 } TowerAttributeType;
 
-typedef enum {
-    TOWER_MOD_ROF,
-    TOWER_MOD_MULTUSHOT,
-    TOWER_MOD_CRIT_CHANCE,
-    TOWER_MOD_DAMAGE,
-    TOWER_MOD_RANGE,
-    TOWER_MOD_BULLET_SPEED,
-} TowerModifierType;
-
 typedef struct {
     union {
         struct {
@@ -36,10 +27,15 @@ typedef struct {
 } TowerAttributes;
 
 typedef struct {
-    char name[32];
-    TowerAttributes attributes;
-    /// used to define the formula to calculate damage, range or ROF of the modifier
+    TowerAttributeType target;
+    float value;
     ModValueType value_type;
+} TowerModifierEntry;
+
+typedef struct {
+    char name[31];
+    int entries_count;
+    TowerModifierEntry entries[TOWER_ATTR_COUNT];
 } TowerModifier;
 
 int tower_mod_data_GetModCount();
@@ -50,5 +46,7 @@ bool tower_mod_data_load();
 
 char *tower_mod_data_GetAttrLabel(TowerAttributeType attribute);
 TowerModifier *tower_mod_data_GetMutableModData(int mod_id);
+int tower_mod_data_RemoveModData(int mod_id);
+int tower_mod_data_CreateNewMod();
 
 #endif

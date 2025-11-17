@@ -10,18 +10,49 @@
 typedef struct {
     TowerModifier *data;
     int count;
+    int capacity;
 } TowerModifierRegistry;
 
 static TowerModifierRegistry tower_modifiers = {0};
 
 static ModValueType parseModValueType(const char *str) {
-    if (!str)
+    if (strcmp(str, "FLAT") == 0) {
         return MOD_VALUE_TYPE_FLAT;
-    if (strcmp(str, "FLAT") == 0)
-        return MOD_VALUE_TYPE_FLAT;
-    if (strcmp(str, "MULTIPLIER") == 0)
+    }
+
+    if (strcmp(str, "MULTIPLIER") == 0) {
         return MOD_VALUE_TYPE_MULTIPLIER;
-    return MOD_VALUE_TYPE_FLAT;
+    }
+
+    assert(false && "Invalid value type in tower modifiers data JSON");
+}
+
+static TowerAttributeType parseAttribute(const char *str) {
+    if (strcmp(str, "DAMAGE") == 0) {
+        return TOWER_ATTR_DAMAGE;
+    }
+
+    if (strcmp(str, "RANGE") == 0) {
+        return TOWER_ATTR_RANGE;
+    }
+
+    if (strcmp(str, "RATE_OF_FIRE") == 0) {
+        return TOWER_ATTR_RATE_OF_FIRE;
+    }
+
+    if (strcmp(str, "BULLET_SPEED") == 0) {
+        return TOWER_ATTR_BULLET_SPEED;
+    }
+
+    if (strcmp(str, "MULTISHOT") == 0) {
+        return TOWER_ATTR_MULTISHOT;
+    }
+
+    if (strcmp(str, "CRIT_CHANCE_PERCENT") == 0) {
+        return TOWER_ATTR_CRIT_CHANCE_PERCENT;
+    }
+
+    assert(false && "Invalid attribute in tower modifiers data JSON");
 }
 
 static void unloadTowerModifiersData(void) {
@@ -72,6 +103,7 @@ bool tower_mod_data_load() {
 
     int count = cJSON_GetArraySize(data);
     tower_modifiers.count = count;
+    tower_modifiers.capacity = count;
     tower_modifiers.data = calloc(count, sizeof(TowerModifier));
 
     for (int i = 0; i < count; i++) {
@@ -83,28 +115,21 @@ bool tower_mod_data_load() {
             strncpy(mod->name, name->valuestring, sizeof(mod->name) - 1);
         }
 
-        cJSON *value_type = cJSON_GetObjectItem(obj, "value_type");
-        mod->value_type = parseModValueType(value_type ? value_type->valuestring : NULL);
+        cJSON *attrs_json = cJSON_GetObjectItem(obj, "attributes");
 
-        cJSON *item;
+        mod->entries_count = cJSON_GetArraySize(attrs_json);
 
-        item = cJSON_GetObjectItem(obj, "damage");
-        mod->attributes.damage = item ? item->valuedouble : 0.0f;
+        for (int mod_entry_idx = 0; mod_entry_idx < mod->entries_count; mod_entry_idx++) {
+            cJSON *mod_attr = cJSON_GetArrayItem(attrs_json, mod_entry_idx);
+            cJSON *mod_attr_target = cJSON_GetObjectItem(mod_attr, "attribute");
+            cJSON *mod_attr_value = cJSON_GetObjectItem(mod_attr, "value");
+            cJSON *mod_attr_value_type = cJSON_GetObjectItem(mod_attr, "value_type");
+            TowerAttributeType attr_type = parseAttribute(mod_attr_target->valuestring);
 
-        item = cJSON_GetObjectItem(obj, "range");
-        mod->attributes.range = item ? item->valuedouble : 0.0f;
-
-        item = cJSON_GetObjectItem(obj, "rate_of_fire");
-        mod->attributes.rate_of_fire = item ? item->valuedouble : 0.0f;
-
-        item = cJSON_GetObjectItem(obj, "bullet_speed");
-        mod->attributes.bullet_speed = item ? item->valuedouble : 0.0f;
-
-        item = cJSON_GetObjectItem(obj, "multishot");
-        mod->attributes.multishot = item ? item->valuedouble : 0.0f;
-
-        item = cJSON_GetObjectItem(obj, "crit_chance_percent");
-        mod->attributes.crit_chance_percent = item ? item->valuedouble : 0.0f;
+            mod->entries[mod_entry_idx].target = attr_type;
+            mod->entries[mod_entry_idx].value = mod_attr_value->valuedouble;
+            mod->entries[mod_entry_idx].value_type = parseModValueType(mod_attr_value_type->valuestring);
+        }
     }
 
     cJSON_Delete(root);
@@ -137,6 +162,29 @@ char *tower_mod_data_GetAttrLabel(TowerAttributeType attribute) {
 
 TowerModifier *tower_mod_data_GetMutableModData(int mod_id) {
     return &tower_modifiers.data[mod_id];
+}
+
+int tower_mod_data_RemoveModData(int mod_id) {
+    for (int i = mod_id; i < tower_modifiers.count; i++) {
+        tower_modifiers.data[i] = tower_modifiers.data[i + 1];
+    }
+
+    tower_modifiers.count--;
+
+    return tower_modifiers.count;
+}
+
+int tower_mod_data_CreateNewMod() {
+    if (tower_modifiers.count >= tower_modifiers.capacity) {
+        tower_modifiers.capacity *= 2;
+        tower_modifiers.data = realloc(tower_modifiers.data, tower_modifiers.capacity * sizeof(TowerModifier));
+    }
+
+    tower_modifiers.data[tower_modifiers.count] = (TowerModifier){.name = "Unnamed"};
+
+    tower_modifiers.count++;
+
+    return tower_modifiers.count - 1;
 }
 
 #endif
