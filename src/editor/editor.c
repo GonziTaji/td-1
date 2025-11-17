@@ -160,6 +160,10 @@ static Rectangle DrawTowerModsPanel(Vector2 position) {
         editor_state.tower_mod_selected_idx = 0;
     }
 
+    if (ui_AddButton("Save data", font_sizes.button)) {
+        tower_mod_data_Save();
+    }
+
     if (ui_AddButton("Add new mod", font_sizes.button)) {
         editor_state.tower_mod_selected_idx = tower_mod_data_CreateNewMod();
     }

@@ -15,41 +15,17 @@ typedef struct {
 
 static StatusEffectRegistry status_effects = {0};
 
+static const EnumJsonMapping status_effect_str_map[] = {
+    {STATUS_EFFECT_TYPE_SLOW, "SLOW"},
+    {STATUS_EFFECT_TYPE_DOT, "DOT"},
+    {STATUS_EFFECT_TYPE_STUN, "STUN"},
+    {STATUS_EFFECT_TYPE_DETONATE_ON_DEATH, "DETONATE_ON_DEATH"},
+};
+
+static const int status_effect_str_map_count = MAPPING_COUNT(status_effect_str_map);
+
 static StatusEffectType parseStatusEffectType(const char *str) {
-    if (!str)
-        return STATUS_EFFECT_TYPE_SLOW;
-    if (strcmp(str, "SLOW") == 0)
-        return STATUS_EFFECT_TYPE_SLOW;
-    if (strcmp(str, "DOT") == 0)
-        return STATUS_EFFECT_TYPE_DOT;
-    if (strcmp(str, "STUN") == 0)
-        return STATUS_EFFECT_TYPE_STUN;
-    if (strcmp(str, "DETONATE_ON_DEATH") == 0)
-        return STATUS_EFFECT_TYPE_DETONATE_ON_DEATH;
-
-    return STATUS_EFFECT_TYPE_SLOW;
-}
-
-static DurationType parseDurationType(const char *str) {
-    if (!str)
-        return DURATION_TYPE_TEMPORARY;
-    if (strcmp(str, "TEMPORAL") == 0)
-        return DURATION_TYPE_TEMPORARY;
-    if (strcmp(str, "PERMANENT") == 0)
-        return DURATION_TYPE_PERMANENT;
-
-    return DURATION_TYPE_TEMPORARY;
-}
-
-static ModValueType parseModValueType(const char *str) {
-    if (!str)
-        return MOD_VALUE_TYPE_FLAT;
-    if (strcmp(str, "FLAT") == 0)
-        return MOD_VALUE_TYPE_FLAT;
-    if (strcmp(str, "MULTIPLIER") == 0)
-        return MOD_VALUE_TYPE_MULTIPLIER;
-
-    return MOD_VALUE_TYPE_FLAT;
+    return utils_data_ParseEnum(str, status_effect_str_map, status_effect_str_map_count);
 }
 
 static void unloadStatusEffectsData(void) {
@@ -112,10 +88,10 @@ bool status_effect_data_load() {
         effect->type = parseStatusEffectType(type ? type->valuestring : NULL);
 
         cJSON *duration_type = cJSON_GetObjectItem(obj, "duration_type");
-        effect->duration_type = parseDurationType(duration_type ? duration_type->valuestring : NULL);
+        effect->duration_type = utils_ParseDurationType(duration_type ? duration_type->valuestring : NULL);
 
         cJSON *value_type = cJSON_GetObjectItem(obj, "value_type");
-        effect->value_type = parseModValueType(value_type ? value_type->valuestring : NULL);
+        effect->value_type = utils_ParseModValueType(value_type ? value_type->valuestring : NULL);
 
         cJSON *item;
 

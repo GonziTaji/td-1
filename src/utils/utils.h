@@ -6,6 +6,17 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) >= (b) ? (a) : (b))
 
+#ifdef ENABLE_EDITOR
+
+typedef struct {
+    int enum_value;
+    const char *json_string;
+} EnumJsonMapping;
+
+#define MAPPING_COUNT(map) (sizeof(map) / sizeof(EnumJsonMapping));
+
+#endif
+
 typedef enum {
     DURATION_TYPE_PERMANENT,
     DURATION_TYPE_TEMPORARY,
@@ -52,5 +63,13 @@ Vector2 RectangleGetSize(Rectangle rec);
 char *utils_GetDurationTypeLabel(DurationType type);
 char **utils_GetAllDurationTypeLabels();
 char **utils_GetModValueTypeLabels();
+
+const char *utils_data_EnumToStr(int enum_value, const EnumJsonMapping *map, int map_count);
+int utils_data_ParseEnum(const char *str_value, const EnumJsonMapping *map, int map_count);
+
+DurationType utils_ParseDurationType(const char *str);
+const char *utils_DurationTypeToStr(DurationType type);
+ModValueType utils_ParseModValueType(const char *str);
+const char *utils_ModValueTypeToStr(ModValueType type);
 
 #endif

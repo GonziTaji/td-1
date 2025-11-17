@@ -48,5 +48,6 @@ char *tower_mod_data_GetAttrLabel(TowerAttributeType attribute);
 TowerModifier *tower_mod_data_GetMutableModData(int mod_id);
 int tower_mod_data_RemoveModData(int mod_id);
 int tower_mod_data_CreateNewMod();
+bool tower_mod_data_Save();
 
 #endif

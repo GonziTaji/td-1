@@ -3,6 +3,23 @@
 #include <assert.h>
 #include <math.h>
 #include <raylib.h>
+#include <string.h>
+
+#ifdef ENABLE_EDITOR
+
+static const EnumJsonMapping duration_type_mapping[] = {
+    {DURATION_TYPE_TEMPORARY, "TEMPORAL"},
+    {DURATION_TYPE_PERMANENT, "PERMANENT"},
+};
+static int duration_type_mapping_count = MAPPING_COUNT(duration_type_mapping);
+
+static const EnumJsonMapping value_type_mapping[] = {
+    {MOD_VALUE_TYPE_FLAT, "FLAT"},
+    {MOD_VALUE_TYPE_FLAT, "MULTIPLIER"},
+};
+static int value_type_mapping_count = MAPPING_COUNT(duration_type_mapping);
+
+#endif
 
 float utils_clampf(float min, float max, float value) {
     if (min > value) {
@@ -86,6 +103,40 @@ char **utils_GetModValueTypeLabels() {
     }
 
     return mod_labels;
+}
+
+int utils_data_ParseEnum(const char *str_value, const EnumJsonMapping *map, int map_count) {
+    for (int i = 0; i < map_count; i++) {
+        if (strcmp(map[i].json_string, str_value) == 0) {
+            return map[i].enum_value;
+        }
+    }
+
+    assert(false && "Invalid string value for enum");
+}
+
+const char *utils_data_EnumToStr(int enum_value, const EnumJsonMapping *map, int map_count) {
+    if (enum_value >= 0 && enum_value < map_count) {
+        return map[enum_value].json_string;
+    }
+
+    assert(false && "Enum value out of bounds");
+}
+
+DurationType utils_ParseDurationType(const char *str) {
+    return utils_data_ParseEnum(str, duration_type_mapping, duration_type_mapping_count);
+}
+
+const char *utils_DurationTypeToStr(DurationType type) {
+    return utils_data_EnumToStr(type, duration_type_mapping, duration_type_mapping_count);
+}
+
+ModValueType utils_ParseModValueType(const char *str) {
+    return utils_data_ParseEnum(str, value_type_mapping, value_type_mapping_count);
+}
+
+const char *utils_ModValueTypeToStr(ModValueType type) {
+    return utils_data_EnumToStr(type, value_type_mapping, value_type_mapping_count);
 }
 
 #endif

@@ -15,44 +15,23 @@ typedef struct {
 
 static TowerModifierRegistry tower_modifiers = {0};
 
-static ModValueType parseModValueType(const char *str) {
-    if (strcmp(str, "FLAT") == 0) {
-        return MOD_VALUE_TYPE_FLAT;
-    }
+static const EnumJsonMapping tower_attribute_str_map[] = {
+    {TOWER_ATTR_DAMAGE, "DAMAGE"},
+    {TOWER_ATTR_RANGE, "RANGE"},
+    {TOWER_ATTR_RATE_OF_FIRE, "RATE_OF_FIRE"},
+    {TOWER_ATTR_BULLET_SPEED, "BULLET_SPEED"},
+    {TOWER_ATTR_MULTISHOT, "MULTISHOT"},
+    {TOWER_ATTR_CRIT_CHANCE_PERCENT, "CRIT_CHANCE_PERCENT"},
+};
 
-    if (strcmp(str, "MULTIPLIER") == 0) {
-        return MOD_VALUE_TYPE_MULTIPLIER;
-    }
-
-    assert(false && "Invalid value type in tower modifiers data JSON");
-}
+static const int tower_attribute_str_map_count = MAPPING_COUNT(tower_attribute_str_map);
 
 static TowerAttributeType parseAttribute(const char *str) {
-    if (strcmp(str, "DAMAGE") == 0) {
-        return TOWER_ATTR_DAMAGE;
-    }
+    return utils_data_ParseEnum(str, tower_attribute_str_map, tower_attribute_str_map_count);
+}
 
-    if (strcmp(str, "RANGE") == 0) {
-        return TOWER_ATTR_RANGE;
-    }
-
-    if (strcmp(str, "RATE_OF_FIRE") == 0) {
-        return TOWER_ATTR_RATE_OF_FIRE;
-    }
-
-    if (strcmp(str, "BULLET_SPEED") == 0) {
-        return TOWER_ATTR_BULLET_SPEED;
-    }
-
-    if (strcmp(str, "MULTISHOT") == 0) {
-        return TOWER_ATTR_MULTISHOT;
-    }
-
-    if (strcmp(str, "CRIT_CHANCE_PERCENT") == 0) {
-        return TOWER_ATTR_CRIT_CHANCE_PERCENT;
-    }
-
-    assert(false && "Invalid attribute in tower modifiers data JSON");
+static const char *attributeToString(TowerAttributeType attr) {
+    return utils_data_EnumToStr(attr, tower_attribute_str_map, tower_attribute_str_map_count);
 }
 
 static void unloadTowerModifiersData(void) {
@@ -128,7 +107,7 @@ bool tower_mod_data_load() {
 
             mod->entries[mod_entry_idx].target = attr_type;
             mod->entries[mod_entry_idx].value = mod_attr_value->valuedouble;
-            mod->entries[mod_entry_idx].value_type = parseModValueType(mod_attr_value_type->valuestring);
+            mod->entries[mod_entry_idx].value_type = utils_ParseModValueType(mod_attr_value_type->valuestring);
         }
     }
 
@@ -185,6 +164,89 @@ int tower_mod_data_CreateNewMod() {
     tower_modifiers.count++;
 
     return tower_modifiers.count - 1;
+}
+
+bool tower_mod_data_Save() {
+    cJSON *root = cJSON_CreateObject();
+    if (!root) {
+        return false;
+    }
+
+    // Add schema reference
+    cJSON_AddStringToObject(root, "$schema", "./schemas/tower_modifiers.schema.json");
+
+    // Create data array
+    cJSON *data_array = cJSON_CreateArray();
+    if (!data_array) {
+        cJSON_Delete(root);
+        return false;
+    }
+    cJSON_AddItemToObject(root, "data", data_array);
+
+    // Iterate through all modifiers
+    for (int i = 0; i < tower_modifiers.count; i++) {
+        TowerModifier *mod = &tower_modifiers.data[i];
+        cJSON *mod_obj = cJSON_CreateObject();
+        if (!mod_obj) {
+            cJSON_Delete(root);
+            return false;
+        }
+
+        // Add name
+        cJSON_AddStringToObject(mod_obj, "name", mod->name);
+
+        // Create attributes array
+        cJSON *attrs_array = cJSON_CreateArray();
+        if (!attrs_array) {
+            cJSON_Delete(mod_obj);
+            cJSON_Delete(root);
+            return false;
+        }
+        cJSON_AddItemToObject(mod_obj, "attributes", attrs_array);
+
+        // Add each entry
+        for (int j = 0; j < mod->entries_count; j++) {
+            TowerModifierEntry *entry = &mod->entries[j];
+            cJSON *entry_obj = cJSON_CreateObject();
+            if (!entry_obj) {
+                cJSON_Delete(mod_obj);
+                cJSON_Delete(root);
+                return false;
+            }
+
+            cJSON_AddStringToObject(entry_obj, "attribute", attributeToString(entry->target));
+            cJSON_AddStringToObject(entry_obj, "value_type", utils_ModValueTypeToStr(entry->value_type));
+            cJSON_AddNumberToObject(entry_obj, "value", entry->value);
+
+            cJSON_AddItemToArray(attrs_array, entry_obj);
+        }
+
+        cJSON_AddItemToArray(data_array, mod_obj);
+    }
+
+    // Convert to string
+    char *json_string = cJSON_Print(root);
+    if (!json_string) {
+        cJSON_Delete(root);
+        return false;
+    }
+
+    // Write to file
+    FILE *f = fopen(FILE_PATH, "w");
+    if (!f) {
+        free(json_string);
+        cJSON_Delete(root);
+        return false;
+    }
+
+    fprintf(f, "%s", json_string);
+    fclose(f);
+
+    // Cleanup
+    free(json_string);
+    cJSON_Delete(root);
+
+    return true;
 }
 
 #endif
