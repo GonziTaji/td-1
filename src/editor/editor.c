@@ -293,6 +293,10 @@ static Rectangle DrawBulletModsPanel(Vector2 position) {
         editor_state.bullet_mod_selected_idx = 0;
     }
 
+    if (ui_AddButton("Save data", font_sizes.button)) {
+        bullet_mod_data_Save();
+    }
+
     if (ui_AddButton("Add new mod", font_sizes.button)) {
         editor_state.bullet_mod_selected_idx = bullet_mod_data_CreateNewMod();
     }
@@ -427,6 +431,10 @@ static Rectangle DrawStatusEffectsPanel(Vector2 position) {
     if (ui_AddButton("Restore saved data", font_sizes.button)) {
         status_effect_data_load();
         editor_state.status_effect_selected_idx = 0;
+    }
+
+    if (ui_AddButton("Save data", font_sizes.button)) {
+        status_effect_data_Save();
     }
 
     if (ui_AddButton("Add new effect", font_sizes.button)) {
@@ -728,6 +736,10 @@ Rectangle DrawTowersPanel(Vector2 panel_position) {
     if (ui_AddButton("Restore saved data", font_sizes.button)) {
         tower_data_load();
         editor_state.tower_selected_id = 0;
+    }
+
+    if (ui_AddButton("Save data", font_sizes.button)) {
+        tower_data_Save();
     }
 
     if (ui_AddButton("Add new tower", font_sizes.button)) {

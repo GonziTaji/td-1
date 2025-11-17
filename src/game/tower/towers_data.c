@@ -143,4 +143,102 @@ int tower_data_CreateNewTowerType() {
     return tower_registry.count - 1;
 }
 
+static cJSON *createColorArray(Color color) {
+    cJSON *color_array = cJSON_CreateArray();
+    if (!color_array) {
+        return NULL;
+    }
+
+    cJSON_AddItemToArray(color_array, cJSON_CreateNumber(color.r));
+    cJSON_AddItemToArray(color_array, cJSON_CreateNumber(color.g));
+    cJSON_AddItemToArray(color_array, cJSON_CreateNumber(color.b));
+    cJSON_AddItemToArray(color_array, cJSON_CreateNumber(color.a));
+
+    return color_array;
+}
+
+bool tower_data_Save() {
+    cJSON *root = cJSON_CreateObject();
+    if (!root) {
+        return false;
+    }
+
+    cJSON_AddStringToObject(root, "$schema", "./schemas/towers.schema.json");
+
+    cJSON *data_array = cJSON_CreateArray();
+    if (!data_array) {
+        cJSON_Delete(root);
+        return false;
+    }
+    cJSON_AddItemToObject(root, "data", data_array);
+
+    for (int i = 0; i < tower_registry.count; i++) {
+        TowerBaseData *tower = &tower_registry.data[i];
+        cJSON *tower_obj = cJSON_CreateObject();
+        if (!tower_obj) {
+            cJSON_Delete(root);
+            return false;
+        }
+
+        cJSON_AddStringToObject(tower_obj, "name", tower->name);
+
+        cJSON *attrs_obj = cJSON_CreateObject();
+        if (!attrs_obj) {
+            cJSON_Delete(tower_obj);
+            cJSON_Delete(root);
+            return false;
+        }
+
+        TowerAttributes *attrs = &tower->attributes;
+        cJSON_AddNumberToObject(attrs_obj, "damage", attrs->damage);
+        cJSON_AddNumberToObject(attrs_obj, "range", attrs->range);
+        cJSON_AddNumberToObject(attrs_obj, "rate_of_fire", attrs->rate_of_fire);
+        cJSON_AddNumberToObject(attrs_obj, "bullet_speed", attrs->bullet_speed);
+        cJSON_AddNumberToObject(attrs_obj, "multishot", attrs->multishot);
+        cJSON_AddNumberToObject(attrs_obj, "crit_chance_percent", attrs->crit_chance_percent);
+
+        cJSON_AddItemToObject(tower_obj, "attributes", attrs_obj);
+
+        cJSON *tower_color_array = createColorArray(tower->tower_color);
+        if (!tower_color_array) {
+            cJSON_Delete(tower_obj);
+            cJSON_Delete(root);
+            return false;
+        }
+        cJSON_AddItemToObject(tower_obj, "tower_color", tower_color_array);
+
+        cJSON *bullet_color_array = createColorArray(tower->bullet_color);
+        if (!bullet_color_array) {
+            cJSON_Delete(tower_obj);
+            cJSON_Delete(root);
+            return false;
+        }
+        cJSON_AddItemToObject(tower_obj, "bullet_color", bullet_color_array);
+        cJSON_AddNumberToObject(tower_obj, "bullet_width", tower->bullet_width);
+
+        cJSON_AddItemToArray(data_array, tower_obj);
+    }
+
+    char *json_string = cJSON_Print(root);
+    if (!json_string) {
+        cJSON_Delete(root);
+        return false;
+    }
+
+    FILE *f = fopen(FILE_PATH, "w");
+    if (!f) {
+        free(json_string);
+        cJSON_Delete(root);
+        return false;
+    }
+
+    fprintf(f, "%s", json_string);
+    fclose(f);
+
+    free(json_string);
+    cJSON_Delete(root);
+
+    return true;
+}
+
 #endif

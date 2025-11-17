@@ -170,4 +170,65 @@ char **status_effect_data_GetEffectTypeLabels() {
     return labels;
 }
 
+static const char *statusEffectTypeToString(StatusEffectType type) {
+    return utils_data_EnumToStr(type, status_effect_str_map, status_effect_str_map_count);
+}
+
+bool status_effect_data_Save() {
+    cJSON *root = cJSON_CreateObject();
+    if (!root) {
+        return false;
+    }
+
+    cJSON_AddStringToObject(root, "$schema", "./schemas/satus_effects.schema.json");
+
+    cJSON *data_array = cJSON_CreateArray();
+    if (!data_array) {
+        cJSON_Delete(root);
+        return false;
+    }
+    cJSON_AddItemToObject(root, "data", data_array);
+
+    for (int i = 0; i < status_effects.count; i++) {
+        StatusEffect *effect = &status_effects.data[i];
+        cJSON *effect_obj = cJSON_CreateObject();
+        if (!effect_obj) {
+            cJSON_Delete(root);
+            return false;
+        }
+
+        cJSON_AddStringToObject(effect_obj, "name", effect->name);
+        cJSON_AddStringToObject(effect_obj, "type", statusEffectTypeToString(effect->type));
+        cJSON_AddStringToObject(effect_obj, "duration_type", utils_DurationTypeToStr(effect->duration_type));
+        cJSON_AddStringToObject(effect_obj, "value_type", utils_ModValueTypeToStr(effect->value_type));
+        cJSON_AddNumberToObject(effect_obj, "value", effect->value);
+        cJSON_AddNumberToObject(effect_obj, "duration", effect->duration);
+        cJSON_AddNumberToObject(effect_obj, "interval", effect->dot_interval);
+
+        cJSON_AddItemToArray(data_array, effect_obj);
+    }
+
+    char *json_string = cJSON_Print(root);
+    if (!json_string) {
+        cJSON_Delete(root);
+        return false;
+    }
+
+    FILE *f = fopen(FILE_PATH, "w");
+    if (!f) {
+        free(json_string);
+        cJSON_Delete(root);
+        return false;
+    }
+
+    fprintf(f, "%s", json_string);
+    fclose(f);
+
+    // Cleanup
+    free(json_string);
+    cJSON_Delete(root);
+
+    return true;
+}
+
 #endif

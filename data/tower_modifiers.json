@@ -11,15 +11,12 @@
 			"name":	"Basic range",
 			"attributes":	[{
 					"attribute":	"RANGE",
-					"value_type":	"MULTIPLIER",
+					"value_type":	"FLAT",
 					"value":	0.20000000298023224
 				}, {
 					"attribute":	"RATE_OF_FIRE",
 					"value_type":	"FLAT",
 					"value":	1
 				}]
-		}, {
-			"name":	"Unnamed123",
-			"attributes":	[]
 		}]
 }

@@ -86,5 +86,6 @@ bool tower_data_load();
 TowerBaseData *tower_data_GetMutableTowerData(int tower_id);
 void tower_data_RemoveTowerData(int tower_id);
 int tower_data_CreateNewTowerType();
+bool tower_data_Save();
 
 #endif

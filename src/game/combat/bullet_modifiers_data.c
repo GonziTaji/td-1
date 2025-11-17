@@ -137,4 +137,64 @@ int bullet_mod_data_CreateNewMod() {
     return bullet_modifiers.count - 1;
 }
 
+bool bullet_mod_data_Save() {
+    cJSON *root = cJSON_CreateObject();
+    if (!root) {
+        return false;
+    }
+
+    cJSON_AddStringToObject(root, "$schema", "./schemas/bullet_modifiers.schema.json");
+
+    cJSON *data_array = cJSON_CreateArray();
+    if (!data_array) {
+        cJSON_Delete(root);
+        return false;
+    }
+    cJSON_AddItemToObject(root, "data", data_array);
+
+    for (int i = 0; i < bullet_modifiers.count; i++) {
+        BulletModifier *mod = &bullet_modifiers.data[i];
+        cJSON *mod_obj = cJSON_CreateObject();
+        if (!mod_obj) {
+            cJSON_Delete(root);
+            return false;
+        }
+
+        cJSON_AddStringToObject(mod_obj, "name", mod->name);
+
+        BulletAttributes *attrs = &mod->attributes;
+
+        cJSON_AddNumberToObject(mod_obj, "aoe_range", attrs->aoe_range);
+        cJSON_AddNumberToObject(mod_obj, "aoe_falloff_multiplier", attrs->aoe_falloff_multiplier);
+        cJSON_AddNumberToObject(mod_obj, "chain_max_bounces", attrs->chain_max_bounces);
+        cJSON_AddNumberToObject(mod_obj, "chain_bounce_range", attrs->chain_bounce_range);
+        cJSON_AddNumberToObject(mod_obj, "chain_bounce_multiplier", attrs->chain_bounce_multiplier);
+        cJSON_AddNumberToObject(mod_obj, "detonate_damage", attrs->detonate_damage);
+        cJSON_AddNumberToObject(mod_obj, "detonate_range", attrs->detonate_range);
+
+        cJSON_AddItemToArray(data_array, mod_obj);
+    }
+
+    char *json_string = cJSON_Print(root);
+    if (!json_string) {
+        cJSON_Delete(root);
+        return false;
+    }
+
+    FILE *f = fopen(FILE_PATH, "w");
+    if (!f) {
+        free(json_string);
+        cJSON_Delete(root);
+        return false;
+    }
+
+    fprintf(f, "%s", json_string);
+    fclose(f);
+
+    free(json_string);
+    cJSON_Delete(root);
+
+    return true;
+}
+
 #endif

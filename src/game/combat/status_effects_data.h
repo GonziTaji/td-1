@@ -32,5 +32,6 @@ StatusEffect *status_effect_data_GetMutableStatusData(int effect_id);
 char **status_effect_data_GetEffectTypeLabels();
 int status_effect_data_RemoveStatusData(int mod_id);
 int status_effect_data_CreateNewStatus();
+bool status_effect_data_Save();
 
 #endif
